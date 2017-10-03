@@ -1,0 +1,13 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "7G5paRkxcf5bOUrFYM+w6C/GJXw=",
+			"path": "github.com/xlab/closer",
+			"revision": "89cd22812c4fd5188746092cd10992caeffc75ab",
+			"revisionTime": "2016-11-13T21:41:03Z"
+		}
+	],
+	"rootPath": "github.com/roytan883/micro-services"
+}
