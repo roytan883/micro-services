@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,6 +16,8 @@ import (
 const (
 	//AppName ...
 	AppName = "ws-connector"
+	//ServiceName ...
+	ServiceName = AppName
 )
 
 func init() {
@@ -29,17 +32,23 @@ func initLog() {
 		FullTimestamp:   true,
 		TimestampFormat: "01-02 15:04:05.000000",
 	}
-	log.WithFields(logrus.Fields{"package": AppName, "file": "main"})
+	log.WithFields(logrus.Fields{"package": AppName})
 }
 
 // NOTE: Use tls scheme for TLS, e.g. nats-req -s tls://demo.nats.io:4443 foo hello
 // ws-connector -s nats://192.168.1.69:12008
 // ws-connector -s nats://127.0.0.1:4222
 func usage() {
-	log.Fatalf("Usage: ws-connector [-s server (%s)] \n", nats.DefaultURL)
+	log.Fatalf("Usage: ws-connector [-s server (%s)] [-p port (12020)] [-i nodeID (0)] \n", nats.DefaultURL)
 }
 
 var pBroker *moleculer.ServiceBroker
+
+var gUrls string
+var gNatsHosts []string
+var gPort int
+var gID int
+var gNodeID = AppName
 
 //debug: go run .\main.go .\ws-connector.go
 func main() {
@@ -47,21 +56,29 @@ func main() {
 	log.Infof("Start %s ...\n", AppName)
 
 	//get NATS server host
-	var urls = flag.String("s", nats.DefaultURL, "The nats server URLs (separated by comma)")
+	gUrls = *(flag.String("s", nats.DefaultURL, "The nats server URLs (separated by comma, default localhost:4222)"))
+	gPort = *(flag.Int("p", 12020, "listen websocket port"))
+	gID = *(flag.Int("i", 0, "ID of the service on this machine"))
 	flag.Usage = usage
 	flag.Parse()
-	var hosts = strings.Split(*urls, ",")
-	log.Printf("hosts : '%v'\n", hosts)
+	log.Printf("gUrls : %v\n", gUrls)
+	gNatsHosts = strings.Split(gUrls, ",")
+	log.Printf("gNatsHosts : %v\n", gNatsHosts)
+	log.Printf("gPort : %v\n", gPort)
+	log.Printf("gID : %v\n", gID)
+
+	gNodeID += "-" + strconv.Itoa(gID)
+	log.Printf("gNodeID : %v\n", gNodeID)
 
 	//init service and broker
 	config := &moleculer.ServiceBrokerConfig{
-		NatsHost: hosts,
-		NodeID:   "ws-connector",
+		NatsHost: gNatsHosts,
+		NodeID:   gNodeID,
 		// LogLevel: moleculer.DebugLevel,
 		LogLevel: moleculer.ErrorLevel,
 		Services: make(map[string]moleculer.Service),
 	}
-	config.Services["ws-connector"] = createService()
+	config.Services[ServiceName] = createService()
 	broker, err := moleculer.NewServiceBroker(config)
 	if err != nil {
 		log.Fatalf("NewServiceBroker err: %v\n", err)

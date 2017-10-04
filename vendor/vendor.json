@@ -9,6 +9,55 @@
 			"revisionTime": "2017-08-22T13:27:46Z"
 		},
 		{
+			"checksumSHA1": "8KawKW6FJguwWz5cPvMg/ChmepE=",
+			"path": "github.com/gorilla/websocket",
+			"revision": "4201258b820c74ac8e6922fc9e6b52f71fe46f8d",
+			"revisionTime": "2017-09-26T23:33:35Z"
+		},
+		{
+			"checksumSHA1": "aTsQvNdeU70SyJEXT4UzTLiO7nY=",
+			"origin": "github.com/roytan883/moleculer-go/vendor/github.com/json-iterator/go",
+			"path": "github.com/json-iterator/go",
+			"revision": "d35770710647211817c074bcfb80c8734285d15b",
+			"revisionTime": "2017-10-03T09:01:55Z"
+		},
+		{
+			"checksumSHA1": "YdkUoSkbe4ZgLJyFqpEbWZpfPtE=",
+			"path": "github.com/nats-io/go-nats",
+			"revision": "0977874fadb35fa59e42744325dbbdfe83aab6b1",
+			"revisionTime": "2017-08-31T15:35:37Z"
+		},
+		{
+			"checksumSHA1": "Q2c9uTEIGhSIddv5pntYdFNtUdk=",
+			"path": "github.com/nats-io/go-nats/encoders/builtin",
+			"revision": "0977874fadb35fa59e42744325dbbdfe83aab6b1",
+			"revisionTime": "2017-08-31T15:35:37Z"
+		},
+		{
+			"checksumSHA1": "LhbIA/oMWpscEPPK9Wrx5GLcz44=",
+			"path": "github.com/nats-io/go-nats/util",
+			"revision": "0977874fadb35fa59e42744325dbbdfe83aab6b1",
+			"revisionTime": "2017-08-31T15:35:37Z"
+		},
+		{
+			"checksumSHA1": "qI+4s7mlYYbB7ppay+Z3Y7+mhik=",
+			"path": "github.com/nats-io/nuid",
+			"revision": "3cf34f9fca4e88afa9da8eabd75e3326c9941b44",
+			"revisionTime": "2017-03-03T15:02:24Z"
+		},
+		{
+			"checksumSHA1": "vEeZA7dCwLYeltGxgiLSYGqLTw0=",
+			"path": "github.com/roytan883/moleculer-go",
+			"revision": "d35770710647211817c074bcfb80c8734285d15b",
+			"revisionTime": "2017-10-03T09:01:55Z"
+		},
+		{
+			"checksumSHA1": "lpk5VhOvrWoICHn6BJ5lWXPYd5w=",
+			"path": "github.com/roytan883/moleculer-go/protocol",
+			"revision": "d35770710647211817c074bcfb80c8734285d15b",
+			"revisionTime": "2017-10-03T09:01:55Z"
+		},
+		{
 			"checksumSHA1": "7G5paRkxcf5bOUrFYM+w6C/GJXw=",
 			"path": "github.com/xlab/closer",
 			"revision": "89cd22812c4fd5188746092cd10992caeffc75ab",
