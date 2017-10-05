@@ -78,13 +78,16 @@ func main() {
 		LogLevel: moleculer.ErrorLevel,
 		Services: make(map[string]moleculer.Service),
 	}
-	config.Services[ServiceName] = createService()
+	moleculerService := createMoleculerService()
+	config.Services[moleculerService.ServiceName] = moleculerService
 	broker, err := moleculer.NewServiceBroker(config)
 	if err != nil {
 		log.Fatalf("NewServiceBroker err: %v\n", err)
 	}
 	pBroker = broker
 	broker.Start()
+
+	startWsService()
 
 	closer.Hold()
 }
@@ -95,6 +98,7 @@ func cleanupFunc() {
 	if pBroker != nil {
 		pBroker.Stop()
 	}
+	stopWsService()
 	time.Sleep(time.Second * 1)
 	log.Warn("=================== exit end   =================== ")
 	log.Infof("%s is closed", AppName)

@@ -8,24 +8,22 @@ import (
 	"github.com/roytan883/moleculer-go/protocol"
 )
 
-var gService *moleculer.Service
+var gMoleculerService *moleculer.Service
 
-func createService() moleculer.Service {
-	gService = &moleculer.Service{
+func createMoleculerService() moleculer.Service {
+	gMoleculerService = &moleculer.Service{
 		ServiceName: AppName,
 		Actions:     make(map[string]moleculer.RequestHandler),
 		Events:      make(map[string]moleculer.EventHandler),
 	}
 
 	//init actions handlers
-	gService.Actions["push"] = push
+	gMoleculerService.Actions["push"] = push
 
 	//init listen events handlers
-	gService.Events["eventA"] = onEventA
+	gMoleculerService.Events["eventA"] = onEventA
 
-	createWsService()
-
-	return *gService
+	return *gMoleculerService
 }
 
 func serveHome(w http.ResponseWriter, r *http.Request) {
@@ -41,12 +39,14 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "home.html")
 }
 
-func createWsService() {
-	hub := newHub()
-	go hub.run()
+var gHub *Hub
+
+func startWsService() {
+	gHub = newHub()
+	go gHub.run()
 	http.HandleFunc("/", serveHome)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		serveWs(hub, w, r)
+		serveWs(gHub, w, r)
 	})
 	listenHost := ":" + strconv.Itoa(gPort)
 	go func() {
@@ -55,6 +55,12 @@ func createWsService() {
 			log.Fatal("ListenAndServe: ", err)
 		}
 	}()
+}
+
+func stopWsService() {
+	if gHub != nil {
+		gHub.close()
+	}
 }
 
 func push(req *protocol.MsRequest) (interface{}, error) {

@@ -52,6 +52,9 @@ func (h *Hub) close() {
 	for index := 0; index < 10; index++ {
 		h.hubClosed <- 1
 	}
+	for _, client := range h.clients {
+		client.close()
+	}
 }
 
 func (h *Hub) handleClientMessage(client *Client, msgType int, msg []byte) {
