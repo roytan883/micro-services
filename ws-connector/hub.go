@@ -8,7 +8,7 @@ package main
 // clients.
 type Hub struct {
 	// Registered clients.
-	clients map[*Client]bool
+	clients map[string]*Client
 
 	// Inbound messages from the clients.
 	broadcast chan []byte
@@ -18,37 +18,120 @@ type Hub struct {
 
 	// Unregister requests from clients.
 	unregister chan *Client
+
+	hubClosed chan int
+}
+
+type gCmdType uint32
+
+const (
+	gCmdPush gCmdType = iota
+	gCmdKick
+	gCmdClose
+)
+
+type gCommand struct {
+	cmdType  gCmdType
+	clientID string
+	message  []byte
 }
 
 func newHub() *Hub {
 	return &Hub{
-		broadcast:  make(chan []byte),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
-		clients:    make(map[*Client]bool),
+		hubClosed:  make(chan int, 10),
+		broadcast:  make(chan []byte, 1000),
+		register:   make(chan *Client, 1000),
+		unregister: make(chan *Client, 1000),
+		clients:    make(map[string]*Client),
+		// cmdChan:    make(chan *gCommand, 1),
+		// cmdClose:   make(chan int)
 	}
 }
 
-func (h *Hub) run() {
-	for {
-		select {
-		case client := <-h.register:
-			h.clients[client] = true
-		case client := <-h.unregister:
-			if _, ok := h.clients[client]; ok {
-				delete(h.clients, client)
+func (h *Hub) close() {
+	for index := 0; index < 10; index++ {
+		h.hubClosed <- 1
+	}
+}
+
+func (h *Hub) handleClientMessage(client *Client, msgType int, msg []byte) {
+	go func() {
+		log.Infof("Hub handleMessage from client[%s] msgType[%d] msg: %s\n", client.ID, msgType, msg)
+		for _, client := range h.clients {
+			client.send(msg)
+		}
+
+		//test only
+		msgStr := string(msg)
+		if msgStr == "close" {
+			log.Warn("Hub Close all client on test close message")
+			for _, client := range h.clients {
 				client.close()
-				// close(client.send)
-			}
-		case message := <-h.broadcast:
-			for client := range h.clients {
-				select {
-				case client.send <- message:
-				default:
-					close(client.send)
-					delete(h.clients, client)
-				}
 			}
 		}
-	}
+	}()
+}
+
+func (h *Hub) run() {
+	go func() {
+		for {
+			select {
+			case client := <-h.register:
+				h.clients[client.ID] = client
+			case <-h.hubClosed:
+				return
+			}
+		}
+	}()
+	go func() {
+		for {
+			select {
+			case client := <-h.unregister:
+				if _, ok := h.clients[client.ID]; ok {
+					delete(h.clients, client.ID)
+					client.close()
+				}
+			case <-h.hubClosed:
+				return
+			}
+		}
+	}()
+	// go func() {
+	// 	for {
+	// 		select {
+	// 		case message := <-h.broadcast:
+	// 			for _, client := range h.clients {
+	// 				select {
+	// 				case client.send <- message:
+	// 				default:
+	// 					close(client.send)
+	// 					delete(h.clients, client.ID)
+	// 				}
+	// 			}
+	// 		case <-h.hubClosed:
+	// 			return
+	// 		}
+	// 	}
+	// }()
+	// for {
+	// 	select {
+	// 	case client := <-h.register:
+	// 		h.clients[client] = true
+	// 	case client := <-h.unregister:
+	// 		if _, ok := h.clients[client]; ok {
+	// 			delete(h.clients, client)
+	// 			client.close()
+	// 			// close(client.send)
+	// 		}
+	// 	case message := <-h.broadcast:
+	// 		for client := range h.clients {
+	// 			select {
+	// 			case client.send <- message:
+	// 			default:
+	// 				close(client.send)
+	// 				delete(h.clients, client)
+	// 			}
+	// 		}
+	// 	}
+	// }
 }

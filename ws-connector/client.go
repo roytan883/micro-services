@@ -6,6 +6,7 @@ package main
 
 import (
 	"bytes"
+	"strconv"
 	"sync/atomic"
 	// "log"
 	"net/http"
@@ -19,7 +20,7 @@ const (
 	writeWait = 10 * time.Second
 
 	// Time allowed to read the next pong message from the peer.
-	pongWait = 60 * time.Second * 4
+	pongWait = 60 * time.Second * 1
 
 	// Send pings to peer with this period. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
@@ -40,7 +41,7 @@ var upgrader = websocket.Upgrader{
 
 // Client is a middleman between the websocket connection and the hub.
 type Client struct {
-	ID uint64
+	ID string
 
 	hub *Hub
 
@@ -48,19 +49,32 @@ type Client struct {
 	conn *websocket.Conn
 
 	// Buffered channel of outbound messages.
-	send chan []byte
+	sendChan chan []byte
+
+	closed int32
+}
+
+func (c *Client) send(data []byte) {
+	if atomic.LoadInt32(&c.closed) > 0 {
+		log.Warnf("client[%s] already closed, can't send: %s\n", c.ID, string(data))
+		return //already closed
+	}
+	log.Printf("client[%s] send: %s\n", c.ID, string(data))
+	c.sendChan <- data
 }
 
 func (c *Client) close() {
-	log.Printf("client[%d] close", c.ID)
+	if atomic.LoadInt32(&c.closed) > 0 {
+		return //already closed
+	}
+	atomic.AddInt32(&c.closed, 1)
+	log.Printf("client[%s] close start", c.ID)
 	c.conn.SetWriteDeadline(time.Now().Add(time.Second * 3))
 	c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-	_, ok := <-c.send
-	if ok {
-		close(c.send)
-	}
+	close(c.sendChan)
 	c.conn.Close()
 	c.hub.unregister <- c
+	log.Printf("client[%s] close end", c.ID)
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -70,36 +84,39 @@ func (c *Client) close() {
 // reads from this goroutine.
 func (c *Client) readPump() {
 	defer func() {
-		// c.hub.unregister <- c
-		// c.conn.Close()
 		c.close()
 	}()
 	// c.conn.SetReadLimit(maxMessageSize)
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	c.conn.SetPongHandler(func(string) error {
+		log.Infof("client[%s] PongHandler\n", c.ID)
+		c.conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+	c.conn.SetPingHandler(func(string) error {
+		log.Infof("client[%s] PingHandler\n", c.ID)
+		c.conn.SetReadDeadline(time.Now().Add(pongWait))
+		c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+		err := c.conn.WriteMessage(websocket.PongMessage, []byte{})
+		return err
+	})
 	for {
-		_, message, err := c.conn.ReadMessage()
+		if atomic.LoadInt32(&c.closed) > 0 {
+			log.Warnf("client[%s] exit readPump, c.closed already set\n", c.ID)
+			return //already closed
+		}
+		msgType, message, err := c.conn.ReadMessage()
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-				log.Printf("client[%d] CloseGoingAway error: %v", c.ID, err)
-			}
-			log.Printf("client[%d] exit readPump, ReadMessage error: %v", c.ID, err)
+			// if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
+			// 	log.Printf("client[%s] CloseGoingAway error: %v", c.ID, err)
+			// }
+			log.Warnf("client[%s] exit readPump, ReadMessage error: %v", c.ID, err)
 			return
-			// break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		messageStr := string(message)
-		log.Printf("client[%d] readPump message: %v\n", c.ID, messageStr)
+		// c.hub.broadcast <- message
+		c.hub.handleClientMessage(c, msgType, message)
 
-		c.hub.broadcast <- message
-
-		if messageStr == "close" {
-			//TODO: only test close when receive "close" message
-			log.Printf("client[%d] exit readPump, only test close message\n", c.ID)
-			// c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			// c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-			return
-		}
 	}
 }
 
@@ -112,37 +129,31 @@ func (c *Client) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		// c.conn.Close()
 		c.close()
 	}()
 	for {
+		if atomic.LoadInt32(&c.closed) > 0 {
+			log.Warnf("client[%s] exit writePump, c.closed already set\n", c.ID)
+			return //already closed
+		}
 		select {
-		case message, ok := <-c.send:
+		case message, ok := <-c.sendChan:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
-				// The hub closed the channel.
-				log.Printf("client[%d] exit writePump, c.send chan was closed\n", c.ID)
-				// c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				return
-			}
-
-			messageStr := string(message)
-			log.Printf("client[%d] writePump message: %v\n", c.ID, messageStr)
-			if messageStr == "close" {
-				//TODO: only test close when receive "close" message
-				log.Printf("client[%d] exit writePump, only test close message\n", c.ID)
-				// c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				log.Warnf("client[%s] exit writePump, c.sendChan was closed\n", c.ID)
 				return
 			}
 
 			err := c.conn.WriteMessage(websocket.TextMessage, message)
 			if err != nil {
-				log.Printf("client[%d] exit writePump, WriteMessage error = %v\n", c.ID, err)
+				log.Warnf("client[%s] exit writePump, WriteMessage error = %v\n", c.ID, err)
 				return
 			}
+
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+				log.Warnf("client[%s] exit writePump, Write PingMessage error = %v\n", c.ID, err)
 				return
 			}
 		}
@@ -162,7 +173,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	client := &Client{ID: gClientID, hub: hub, conn: conn, send: make(chan []byte, 256)}
+	client := &Client{ID: strconv.Itoa(int(gClientID)), hub: hub, conn: conn, sendChan: make(chan []byte, 10)}
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in
