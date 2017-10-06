@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	logrus "github.com/Sirupsen/logrus"
@@ -68,7 +69,7 @@ func main() {
 	pBroker = broker
 	broker.Start()
 
-	test()
+	test2()
 
 	closer.Hold()
 }
@@ -105,4 +106,29 @@ func test() {
 		// log.Info("broker.Emit user.create end, err: ", err)
 
 	})
+}
+
+func test2() {
+	var count int32
+	var testCount int32 = 10000 * 1
+	startTime := time.Now()
+	log.Info("test2 startTime = ", startTime)
+	var index int32
+	for ; index <= testCount; index++ {
+		if atomic.LoadInt32(&count) <= testCount {
+			go func() {
+				if atomic.LoadInt32(&count) >= testCount {
+					endTime := time.Now()
+					log.Info("test2 endTime = ", endTime)
+					log.Info("test2 use time = ", endTime.Sub(startTime))
+					return
+				}
+
+				atomic.AddInt32(&count, 1)
+				// time.Sleep(time.Second * 1)
+
+				// log.Info("test2 count = ", count)
+			}()
+		}
+	}
 }
