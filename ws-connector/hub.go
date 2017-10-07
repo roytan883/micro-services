@@ -6,7 +6,6 @@ package main
 
 import (
 	"sync"
-	"time"
 
 	scheduler "github.com/singchia/go-scheduler"
 )
@@ -56,21 +55,21 @@ func newHub() *Hub {
 		clients:        make(map[string]*Client),
 		clientsRWMutex: new(sync.RWMutex),
 	}
-	hub.inMsgHandlerPool = scheduler.NewScheduler()
-	hub.inMsgHandlerPool.Interval = time.Millisecond * 200
-	hub.inMsgHandlerPool.SetMaxGoroutines(10)
-	hub.inMsgHandlerPool.SetMaxProcessedReqs(600) //1000 / 200 * 600 = 3000 r/s
-	hub.inMsgHandlerPool.SetDefaultHandler(inMsgHandler)
-	hub.inMsgHandlerPool.SetMonitor(inMsgSchedulerMonitor)
-	hub.inMsgHandlerPool.StartSchedule()
+	// hub.inMsgHandlerPool = scheduler.NewScheduler()
+	// hub.inMsgHandlerPool.Interval = time.Millisecond * 200
+	// hub.inMsgHandlerPool.SetMaxGoroutines(10)
+	// hub.inMsgHandlerPool.SetMaxProcessedReqs(600) //1000 / 200 * 600 = 3000 r/s
+	// hub.inMsgHandlerPool.SetDefaultHandler(inMsgHandler)
+	// hub.inMsgHandlerPool.SetMonitor(inMsgSchedulerMonitor)
+	// hub.inMsgHandlerPool.StartSchedule()
 
-	hub.outMsgHandlerPool = scheduler.NewScheduler()
-	hub.outMsgHandlerPool.Interval = time.Millisecond * 200
-	hub.outMsgHandlerPool.SetMaxGoroutines(10)
-	hub.outMsgHandlerPool.SetMaxProcessedReqs(600) //1000 / 200 * 600 = 3000 r/s
-	hub.outMsgHandlerPool.SetDefaultHandler(outMsgHandler)
-	hub.outMsgHandlerPool.SetMonitor(outMsgSchedulerMonitor)
-	hub.outMsgHandlerPool.StartSchedule()
+	// hub.outMsgHandlerPool = scheduler.NewScheduler()
+	// hub.outMsgHandlerPool.Interval = time.Millisecond * 200
+	// hub.outMsgHandlerPool.SetMaxGoroutines(10)
+	// hub.outMsgHandlerPool.SetMaxProcessedReqs(600) //1000 / 200 * 600 = 3000 r/s
+	// hub.outMsgHandlerPool.SetDefaultHandler(outMsgHandler)
+	// hub.outMsgHandlerPool.SetMonitor(outMsgSchedulerMonitor)
+	// hub.outMsgHandlerPool.StartSchedule()
 
 	return hub
 }
@@ -149,42 +148,69 @@ func (h *Hub) close() {
 }
 
 func (h *Hub) sendMessage(ids []string, msg []byte) {
-	log.Info("Hub sendMessage ids: ", ids)
-	log.Info("Hub sendMessage msg: ", msg)
-	log.Info("Hub sendMessage msg: ", string(msg))
-	h.outMsgHandlerPool.PublishRequest(&scheduler.Request{Data: &outMsg{
-		h:   h,
-		ids: ids,
-		msg: msg,
-	}})
+	// log.Info("Hub sendMessage ids: ", ids)
+	// log.Info("Hub sendMessage msg: ", msg)
+	// log.Info("Hub sendMessage msg: ", string(msg))
+	// return
+	// h.outMsgHandlerPool.PublishRequest(&scheduler.Request{Data: &outMsg{
+	// 	h:   h,
+	// 	ids: ids,
+	// 	msg: msg,
+	// }})
+	for _, clientID := range ids {
+		h.clientsRWMutex.RLock()
+		if client, ok := h.clients[clientID]; ok {
+			client.sendChan <- msg
+		}
+		h.clientsRWMutex.RUnlock()
+	}
 }
 
 func (h *Hub) handleClientMessage(client *Client, msgType int, msg []byte) {
 
-	h.inMsgHandlerPool.PublishRequest(&scheduler.Request{Data: &inMsg{
-		h:       h,
-		c:       client,
-		msgType: msgType,
-		msg:     msg,
-	}})
-	// go func() {
-	// 	log.Infof("Hub handleMessage from client[%s] msgType[%d] msg: %s\n", client.ID, msgType, msg)
-	// 	for _, client := range h.clients {
-	// 		client.send(msg)
-	// 	}
+	// h.inMsgHandlerPool.PublishRequest(&scheduler.Request{Data: &inMsg{
+	// 	h:       h,
+	// 	c:       client,
+	// 	msgType: msgType,
+	// 	msg:     msg,
+	// }})
+	go func() {
+		log.Infof("Hub handleMessage from client[%s] msgType[%d] msg: %s\n", client.ID, msgType, msg)
+		for _, client := range h.clients {
+			client.send(msg)
+		}
 
-	// 	//test only
-	// 	msgStr := string(msg)
-	// 	if msgStr == "close" {
-	// 		log.Warn("Hub Close all client on test close message")
-	// 		for _, client := range h.clients {
-	// 			client.close()
-	// 		}
-	// 	}
-	// }()
+		//test only
+		msgStr := string(msg)
+		if msgStr == "close" {
+			log.Warn("Hub Close all client on test close message")
+			for _, client := range h.clients {
+				client.close()
+			}
+		}
+	}()
 }
 
 func (h *Hub) run() {
+
+	//test gc
+	// go func() {
+	// 	ticker := time.NewTicker(time.Millisecond * 1)
+	// 	for {
+	// 		select {
+	// 		case <-ticker.C:
+	// 			// log.Info("ALL Goroutine: ", runtime.NumGoroutine())
+	// 			testData := map[string]interface{}{
+	// 				"ids":  "uaaa, bbb",
+	// 				"data": "abc1133",
+	// 			}
+	// 			pBroker.Broadcast(AppName+".push", testData)
+	// 		case <-h.hubClosed:
+	// 			return
+	// 		}
+	// 	}
+	// }()
+
 	go func() {
 		for {
 			select {

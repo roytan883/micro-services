@@ -2,9 +2,12 @@ package main
 
 import (
 	"net/http"
+	_ "net/http/pprof"
 	"os"
+	"runtime/pprof"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/json-iterator/go"
 
@@ -53,6 +56,16 @@ func startWsService() {
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		serveWs(gHub, w, r)
 	})
+	http.HandleFunc("/dumpmem", func(w http.ResponseWriter, r *http.Request) {
+		fm, err := os.OpenFile("./mem.out"+time.Now().Format("-15-04-05"), os.O_RDWR|os.O_CREATE, 0644)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.WriteHeapProfile(fm)
+		fm.Close()
+		w.WriteHeader(200)
+		w.Write([]byte("OK"))
+	})
 	listenHost := ":" + strconv.Itoa(gPort)
 	go func() {
 		err := http.ListenAndServe(listenHost, nil)
@@ -85,13 +98,13 @@ type pushMsgStruct struct {
 }
 
 func onEventPush(req *protocol.MsEvent) {
-	log.Info("run onEventPush, req.Data = ", req.Data)
+	// log.Info("run onEventPush, req.Data = ", req.Data)
 	jsonString, err := jsoniter.Marshal(req.Data)
 	if err != nil {
 		log.Warn("run onEventPush, parse req.Data to jsonString error: ", err)
 		return
 	}
-	log.Info("jsonString = ", string(jsonString))
+	// log.Info("jsonString = ", string(jsonString))
 	// jsonString = []byte("{\"ids\":[\"uaaa\",\"bbb\"],\"data\":\"abc123\"}")
 	// log.Info("jsonString = ", string(jsonString))
 	jsonObj := &pushMsgStruct{}
@@ -100,9 +113,9 @@ func onEventPush(req *protocol.MsEvent) {
 		log.Warn("run onEventPush, parse req.Data to jsonObj error: ", err)
 		return
 	}
-	log.Info("jsonObj = ", jsonObj)
-	log.Info("jsonObj IDs = ", jsonObj.IDs)
-	log.Info("jsonObj Data = ", jsonObj.Data)
+	// log.Info("jsonObj = ", jsonObj)
+	// log.Info("jsonObj IDs = ", jsonObj.IDs)
+	// log.Info("jsonObj Data = ", jsonObj.Data)
 	data, err := jsoniter.Marshal(jsonObj.Data)
 	if err != nil {
 		log.Warn("run onEventPush, parse jsonObj.Data to data error: ", err)
