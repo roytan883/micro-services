@@ -58,6 +58,12 @@
 			"revisionTime": "2017-10-03T09:01:55Z"
 		},
 		{
+			"checksumSHA1": "gd1vbEj2El0NpltfybK+iQeveqA=",
+			"path": "github.com/singchia/go-scheduler",
+			"revision": "138dfd834f4fc1837e6841ad1dcd3549c10575a7",
+			"revisionTime": "2017-09-15T07:21:32Z"
+		},
+		{
 			"checksumSHA1": "7G5paRkxcf5bOUrFYM+w6C/GJXw=",
 			"path": "github.com/xlab/closer",
 			"revision": "89cd22812c4fd5188746092cd10992caeffc75ab",

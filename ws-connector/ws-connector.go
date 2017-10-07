@@ -2,7 +2,11 @@ package main
 
 import (
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
+
+	"github.com/json-iterator/go"
 
 	moleculer "github.com/roytan883/moleculer-go"
 	"github.com/roytan883/moleculer-go/protocol"
@@ -18,10 +22,11 @@ func createMoleculerService() moleculer.Service {
 	}
 
 	//init actions handlers
-	gMoleculerService.Actions["push"] = push
+	// gMoleculerService.Actions["push"] = push
 
 	//init listen events handlers
-	gMoleculerService.Events["eventA"] = onEventA
+	// gMoleculerService.Events["eventA"] = onEventA
+	gMoleculerService.Events[AppName+".push"] = onEventPush
 
 	return *gMoleculerService
 }
@@ -52,7 +57,8 @@ func startWsService() {
 	go func() {
 		err := http.ListenAndServe(listenHost, nil)
 		if err != nil {
-			log.Fatal("ListenAndServe: ", err)
+			log.Fatal("exit process, http ListenAndServe err: ", err)
+			os.Exit(1)
 		}
 	}()
 }
@@ -73,6 +79,66 @@ func push(req *protocol.MsRequest) (interface{}, error) {
 	// return nil, errors.New("test return error in push")
 }
 
-func onEventA(req *protocol.MsEvent) {
-	log.Info("run onEventA, req.Data = ", req.Data)
+type pushMsgStruct struct {
+	IDs  interface{} `json:"ids"`
+	Data interface{} `json:"data"`
+}
+
+func onEventPush(req *protocol.MsEvent) {
+	log.Info("run onEventPush, req.Data = ", req.Data)
+	jsonString, err := jsoniter.Marshal(req.Data)
+	if err != nil {
+		log.Warn("run onEventPush, parse req.Data to jsonString error: ", err)
+		return
+	}
+	log.Info("jsonString = ", string(jsonString))
+	// jsonString = []byte("{\"ids\":[\"uaaa\",\"bbb\"],\"data\":\"abc123\"}")
+	// log.Info("jsonString = ", string(jsonString))
+	jsonObj := &pushMsgStruct{}
+	err = jsoniter.Unmarshal(jsonString, jsonObj)
+	if err != nil {
+		log.Warn("run onEventPush, parse req.Data to jsonObj error: ", err)
+		return
+	}
+	log.Info("jsonObj = ", jsonObj)
+	log.Info("jsonObj IDs = ", jsonObj.IDs)
+	log.Info("jsonObj Data = ", jsonObj.Data)
+	data, err := jsoniter.Marshal(jsonObj.Data)
+	if err != nil {
+		log.Warn("run onEventPush, parse jsonObj.Data to data error: ", err)
+		return
+	}
+
+	// log.Info("type:", reflect.TypeOf(jsonObj.IDs))
+
+	switch jsonObj.IDs.(type) {
+	case []string:
+		gHub.sendMessage(jsonObj.IDs.([]string), data)
+	case []interface{}:
+		ids := make([]string, 0)
+		_ids := jsonObj.IDs.([]interface{})
+		for _, v := range _ids {
+			if sv, ok := v.(string); ok {
+				ids = append(ids, sv)
+			}
+		}
+		gHub.sendMessage(ids, data)
+	case string:
+		ids := strings.Split(jsonObj.IDs.(string), ",")
+		gHub.sendMessage(ids, data)
+	default:
+		log.Info("can't parse  jsonObj.IDs")
+	}
+
+	// if ids1, ok := jsonObj.IDs.(stringArray); ok {
+	// 	gHub.sendMessage(ids1, data)
+	// 	return
+	// }
+	// if ids2, ok := jsonObj.IDs.(string); ok {
+	// 	ids3 := strings.Split(ids2, ",")
+	// 	gHub.sendMessage(ids3, data)
+	// 	return
+	// }
+	// log.Info("can't parse  jsonObj.IDs")
+	// gHub.sendMessage(jsonObj.IDs, []byte(jsonObj.Data))
 }

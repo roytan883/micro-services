@@ -110,7 +110,8 @@ func test() {
 
 func test2() {
 	var count int32
-	var testCount int32 = 10000 * 1
+	//1.8G for 200K go goroutines
+	var testCount int32 = 200000 * 1
 	startTime := time.Now()
 	log.Info("test2 startTime = ", startTime)
 	var index int32
@@ -125,7 +126,7 @@ func test2() {
 				}
 
 				atomic.AddInt32(&count, 1)
-				// time.Sleep(time.Second * 1)
+				time.Sleep(time.Second * 100)
 
 				// log.Info("test2 count = ", count)
 			}()

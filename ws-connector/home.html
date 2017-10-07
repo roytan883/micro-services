@@ -29,7 +29,14 @@ window.onload = function () {
     };
 
     if (window["WebSocket"]) {
-        conn = new WebSocket("ws://" + document.location.host + "/ws?abc=123&def=aaa");
+        var urlString = "ws://" + document.location.host + "/ws?"
+        // urlString += "userID=u" + Date.now()
+        urlString += "userID=uaaa"
+        urlString += "&platform=web"
+        urlString += "&token=token1111"
+
+        // conn = new WebSocket("ws://" + document.location.host + "/ws?abc=123&def=aaa");
+        conn = new WebSocket(urlString);
         conn.onclose = function (evt) {
             var item = document.createElement("div");
             item.innerHTML = "<b>Connection closed.</b>";

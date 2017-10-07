@@ -85,7 +85,11 @@ func main() {
 		log.Fatalf("NewServiceBroker err: %v\n", err)
 	}
 	pBroker = broker
-	broker.Start()
+	err = broker.Start()
+	if err != nil {
+		log.Fatalf("exit process, broker.Start err: %v\n", err)
+		return
+	}
 
 	startWsService()
 

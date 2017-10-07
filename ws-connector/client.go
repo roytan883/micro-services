@@ -6,10 +6,8 @@ package main
 
 import (
 	"bytes"
-	"strconv"
-	"sync/atomic"
-	// "log"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -20,7 +18,7 @@ const (
 	writeWait = 10 * time.Second
 
 	// Time allowed to read the next pong message from the peer.
-	pongWait = 60 * time.Second * 1
+	pongWait = 200 * time.Second * 1
 
 	// Send pings to peer with this period. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
@@ -41,7 +39,9 @@ var upgrader = websocket.Upgrader{
 
 // Client is a middleman between the websocket connection and the hub.
 type Client struct {
-	ID string
+	ID       string
+	platform string
+	token    string
 
 	hub *Hub
 
@@ -50,6 +50,8 @@ type Client struct {
 
 	// Buffered channel of outbound messages.
 	sendChan chan []byte
+
+	sendPongChan chan int
 
 	closed int32
 }
@@ -72,6 +74,7 @@ func (c *Client) close() {
 	c.conn.SetWriteDeadline(time.Now().Add(time.Second * 3))
 	c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 	close(c.sendChan)
+	close(c.sendPongChan)
 	c.conn.Close()
 	c.hub.unregister <- c
 	log.Printf("client[%s] close end", c.ID)
@@ -96,9 +99,8 @@ func (c *Client) readPump() {
 	c.conn.SetPingHandler(func(string) error {
 		log.Infof("client[%s] PingHandler\n", c.ID)
 		c.conn.SetReadDeadline(time.Now().Add(pongWait))
-		c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-		err := c.conn.WriteMessage(websocket.PongMessage, []byte{})
-		return err
+		c.sendPongChan <- 1 //use writePump to send pong, avoid write conflict
+		return nil
 	})
 	for {
 		if atomic.LoadInt32(&c.closed) > 0 {
@@ -107,16 +109,13 @@ func (c *Client) readPump() {
 		}
 		msgType, message, err := c.conn.ReadMessage()
 		if err != nil {
-			// if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-			// 	log.Printf("client[%s] CloseGoingAway error: %v", c.ID, err)
-			// }
 			log.Warnf("client[%s] exit readPump, ReadMessage error: %v", c.ID, err)
 			return
 		}
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		// c.hub.broadcast <- message
-		c.hub.handleClientMessage(c, msgType, message)
-
+		if msgType == websocket.TextMessage {
+			message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
+			c.hub.handleClientMessage(c, msgType, message)
+		}
 	}
 }
 
@@ -150,6 +149,19 @@ func (c *Client) writePump() {
 				return
 			}
 
+		case _, ok := <-c.sendPongChan:
+			if !ok {
+				log.Warnf("client[%s] exit writePump, c.sendPongChan was closed\n", c.ID)
+				return
+			}
+
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			err := c.conn.WriteMessage(websocket.PongMessage, []byte{})
+			if err != nil {
+				log.Warnf("client[%s] exit writePump, sendPong error = %v\n", c.ID, err)
+				return
+			}
+
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
@@ -164,16 +176,59 @@ var gClientID uint64
 
 // serveWs handles websocket requests from the peer.
 func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
-	//TODO: handle url identify user, return HTTP error
-	//url: /ws?abc=123&def=aaa
+
 	log.Printf("serveWs url = %v", r.URL)
-	atomic.AddUint64(&gClientID, 1)
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println(err)
+
+	queryValues := r.URL.Query()
+
+	log.Printf("serveWs queryValues = %v", queryValues)
+	if len(queryValues) < 1 {
+		w.WriteHeader(401)
+		w.Write([]byte("Need Query Values in URL"))
 		return
 	}
-	client := &Client{ID: strconv.Itoa(int(gClientID)), hub: hub, conn: conn, sendChan: make(chan []byte, 10)}
+	userID := queryValues.Get("userID")
+	if len(userID) < 1 {
+		w.WriteHeader(401)
+		w.Write([]byte("Need Query Values [userID] in URL"))
+		return
+	}
+
+	platform := queryValues.Get("platform")
+	if len(platform) < 1 {
+		w.WriteHeader(401)
+		w.Write([]byte("Need Query Values [platform] in URL"))
+		return
+	}
+
+	token := queryValues.Get("token")
+	if len(token) < 1 {
+		w.WriteHeader(401)
+		w.Write([]byte("Need Query Values [token] in URL"))
+		return
+	}
+	//TODO: just parse id and platform from token, validate token, return fail
+
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Warn("websocket Upgrade connection err: ", err)
+		// log.Println(err)
+		return
+	}
+
+	atomic.AddUint64(&gClientID, 1)
+	log.Warn("websocket connection times: ", atomic.LoadUint64(&gClientID))
+
+	client := &Client{
+		// ID:           strconv.Itoa(int(gClientID)),
+		ID:           userID,
+		platform:     platform,
+		token:        token,
+		hub:          hub,
+		conn:         conn,
+		sendChan:     make(chan []byte, 10),
+		sendPongChan: make(chan int, 10),
+	}
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in

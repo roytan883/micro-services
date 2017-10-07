@@ -53,3 +53,5 @@ _testmain.go
 # bin
 /vendor
 debug.test
+
+node_modules
