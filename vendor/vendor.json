@@ -18,8 +18,8 @@
 			"checksumSHA1": "aTsQvNdeU70SyJEXT4UzTLiO7nY=",
 			"origin": "github.com/roytan883/moleculer-go/vendor/github.com/json-iterator/go",
 			"path": "github.com/json-iterator/go",
-			"revision": "d35770710647211817c074bcfb80c8734285d15b",
-			"revisionTime": "2017-10-03T09:01:55Z"
+			"revision": "ecb8fa8f67be417610dd5735d2ddd16d19b46d70",
+			"revisionTime": "2017-10-07T12:26:30Z"
 		},
 		{
 			"checksumSHA1": "YdkUoSkbe4ZgLJyFqpEbWZpfPtE=",
@@ -46,16 +46,16 @@
 			"revisionTime": "2017-03-03T15:02:24Z"
 		},
 		{
-			"checksumSHA1": "vEeZA7dCwLYeltGxgiLSYGqLTw0=",
+			"checksumSHA1": "a4y6UD5qMgIKQHq1VimqHuSlBqU=",
 			"path": "github.com/roytan883/moleculer-go",
-			"revision": "d35770710647211817c074bcfb80c8734285d15b",
-			"revisionTime": "2017-10-03T09:01:55Z"
+			"revision": "ecb8fa8f67be417610dd5735d2ddd16d19b46d70",
+			"revisionTime": "2017-10-07T12:26:30Z"
 		},
 		{
 			"checksumSHA1": "lpk5VhOvrWoICHn6BJ5lWXPYd5w=",
 			"path": "github.com/roytan883/moleculer-go/protocol",
-			"revision": "d35770710647211817c074bcfb80c8734285d15b",
-			"revisionTime": "2017-10-03T09:01:55Z"
+			"revision": "ecb8fa8f67be417610dd5735d2ddd16d19b46d70",
+			"revisionTime": "2017-10-07T12:26:30Z"
 		},
 		{
 			"checksumSHA1": "gd1vbEj2El0NpltfybK+iQeveqA=",
@@ -76,7 +76,7 @@
 			"revisionTime": "2017-09-30T17:45:11Z"
 		},
 		{
-			"checksumSHA1": "tY+5thYxjKDUQyQXYcBqogmMS5U=",
+			"checksumSHA1": "uggjqMBFNJd11oNco2kbkAT641w=",
 			"path": "golang.org/x/sys/unix",
 			"revision": "314a259e304ff91bd6985da2a7149bbf91237993",
 			"revisionTime": "2017-07-19T03:44:26Z"
