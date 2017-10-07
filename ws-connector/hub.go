@@ -6,8 +6,8 @@ package main
 
 import (
 	"sync"
-
-	scheduler "github.com/singchia/go-scheduler"
+	"sync/atomic"
+	"time"
 )
 
 // Hub maintains the set of active clients and broadcasts messages to the
@@ -28,8 +28,8 @@ type Hub struct {
 
 	hubClosed chan int
 
-	inMsgHandlerPool  *scheduler.Scheduler
-	outMsgHandlerPool *scheduler.Scheduler
+	inMsgHandlerPool  *RunPool
+	outMsgHandlerPool *RunPool
 }
 
 type gCmdType uint32
@@ -55,21 +55,11 @@ func newHub() *Hub {
 		clients:        make(map[string]*Client),
 		clientsRWMutex: new(sync.RWMutex),
 	}
-	// hub.inMsgHandlerPool = scheduler.NewScheduler()
-	// hub.inMsgHandlerPool.Interval = time.Millisecond * 200
-	// hub.inMsgHandlerPool.SetMaxGoroutines(10)
-	// hub.inMsgHandlerPool.SetMaxProcessedReqs(600) //1000 / 200 * 600 = 3000 r/s
-	// hub.inMsgHandlerPool.SetDefaultHandler(inMsgHandler)
-	// hub.inMsgHandlerPool.SetMonitor(inMsgSchedulerMonitor)
-	// hub.inMsgHandlerPool.StartSchedule()
 
-	// hub.outMsgHandlerPool = scheduler.NewScheduler()
-	// hub.outMsgHandlerPool.Interval = time.Millisecond * 200
-	// hub.outMsgHandlerPool.SetMaxGoroutines(10)
-	// hub.outMsgHandlerPool.SetMaxProcessedReqs(600) //1000 / 200 * 600 = 3000 r/s
-	// hub.outMsgHandlerPool.SetDefaultHandler(outMsgHandler)
-	// hub.outMsgHandlerPool.SetMonitor(outMsgSchedulerMonitor)
-	// hub.outMsgHandlerPool.StartSchedule()
+	hub.inMsgHandlerPool = NewRunPool(600, time.Millisecond*200, inMsgHandler)
+	hub.inMsgHandlerPool.Start()
+	hub.outMsgHandlerPool = NewRunPool(600, time.Millisecond*200, outMsgHandler)
+	hub.outMsgHandlerPool.Start()
 
 	return hub
 }
@@ -122,8 +112,10 @@ func outMsgHandler(data interface{}) {
 	if !ok {
 		return
 	}
+
 	// log.Infof("Hub outMsgHandler from client[%s] msgType[%d] msg: %s\n", m.c.ID, m.msgType, m.msg)
 	for _, clientID := range m.ids {
+		// log.Infof("Hub outMsgHandler to client[%s]\n", clientID)
 		m.h.clientsRWMutex.RLock()
 		if client, ok := m.h.clients[clientID]; ok {
 			client.sendChan <- m.msg
@@ -147,69 +139,79 @@ func (h *Hub) close() {
 	}
 }
 
+var gSendMessageCount uint64
+
 func (h *Hub) sendMessage(ids []string, msg []byte) {
+	atomic.AddUint64(&gSendMessageCount, 1)
+	if atomic.LoadUint64(&gSendMessageCount)%10000 == 0 {
+		log.Info("Hub gSendMessageCount: ", gSendMessageCount)
+	}
 	// log.Info("Hub sendMessage ids: ", ids)
 	// log.Info("Hub sendMessage msg: ", msg)
 	// log.Info("Hub sendMessage msg: ", string(msg))
-	// return
-	// h.outMsgHandlerPool.PublishRequest(&scheduler.Request{Data: &outMsg{
-	// 	h:   h,
-	// 	ids: ids,
-	// 	msg: msg,
-	// }})
-	for _, clientID := range ids {
-		h.clientsRWMutex.RLock()
-		if client, ok := h.clients[clientID]; ok {
-			client.sendChan <- msg
-		}
-		h.clientsRWMutex.RUnlock()
-	}
+
+	// for _, clientID := range ids {
+	// 	h.clientsRWMutex.RLock()
+	// 	if client, ok := h.clients[clientID]; ok {
+	// 		client.sendChan <- msg
+	// 	}
+	// 	h.clientsRWMutex.RUnlock()
+	// }
+
+	h.outMsgHandlerPool.Add(&outMsg{
+		h:   h,
+		ids: ids,
+		msg: msg,
+	})
+
 }
 
 func (h *Hub) handleClientMessage(client *Client, msgType int, msg []byte) {
 
-	// h.inMsgHandlerPool.PublishRequest(&scheduler.Request{Data: &inMsg{
-	// 	h:       h,
-	// 	c:       client,
-	// 	msgType: msgType,
-	// 	msg:     msg,
-	// }})
-	go func() {
-		log.Infof("Hub handleMessage from client[%s] msgType[%d] msg: %s\n", client.ID, msgType, msg)
-		for _, client := range h.clients {
-			client.send(msg)
-		}
+	// go func() {
+	// 	log.Infof("Hub handleMessage from client[%s] msgType[%d] msg: %s\n", client.ID, msgType, msg)
+	// 	for _, client := range h.clients {
+	// 		client.send(msg)
+	// 	}
+	// }()
 
-		//test only
-		msgStr := string(msg)
-		if msgStr == "close" {
-			log.Warn("Hub Close all client on test close message")
-			for _, client := range h.clients {
-				client.close()
-			}
+	h.inMsgHandlerPool.Add(&inMsg{
+		h:       h,
+		c:       client,
+		msgType: msgType,
+		msg:     msg,
+	})
+
+	//test only
+	msgStr := string(msg)
+	if msgStr == "close" {
+		log.Warn("Hub Close all client on test close message")
+		for _, client := range h.clients {
+			client.close()
 		}
-	}()
+	}
+
 }
 
 func (h *Hub) run() {
 
 	//test gc
-	// go func() {
-	// 	ticker := time.NewTicker(time.Millisecond * 1)
-	// 	for {
-	// 		select {
-	// 		case <-ticker.C:
-	// 			// log.Info("ALL Goroutine: ", runtime.NumGoroutine())
-	// 			testData := map[string]interface{}{
-	// 				"ids":  "uaaa, bbb",
-	// 				"data": "abc1133",
-	// 			}
-	// 			pBroker.Broadcast(AppName+".push", testData)
-	// 		case <-h.hubClosed:
-	// 			return
-	// 		}
-	// 	}
-	// }()
+	go func() {
+		ticker := time.NewTicker(time.Millisecond * 1)
+		for {
+			select {
+			case <-ticker.C:
+				// log.Info("ALL Goroutine: ", runtime.NumGoroutine())
+				testData := map[string]interface{}{
+					"ids":  "uaaa, bbb",
+					"data": "abc1133",
+				}
+				pBroker.Broadcast(AppName+".push", testData)
+			case <-h.hubClosed:
+				return
+			}
+		}
+	}()
 
 	go func() {
 		for {
