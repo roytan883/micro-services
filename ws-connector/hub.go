@@ -28,8 +28,8 @@ type Hub struct {
 
 	hubClosed chan int
 
-	inMsgHandlerPool  *RunPool
-	outMsgHandlerPool *RunPool
+	inMsgHandlerPool  *RunGoPool
+	outMsgHandlerPool *RunGoPool
 }
 
 type gCmdType uint32
@@ -56,9 +56,9 @@ func newHub() *Hub {
 		clientsRWMutex: new(sync.RWMutex),
 	}
 
-	hub.inMsgHandlerPool = NewRunPool(600, time.Millisecond*200, inMsgHandler)
+	hub.inMsgHandlerPool = NewRunGoPool("hub.inMsgHandlerPool", 300, time.Millisecond*100, inMsgHandler)
 	hub.inMsgHandlerPool.Start()
-	hub.outMsgHandlerPool = NewRunPool(600, time.Millisecond*200, outMsgHandler)
+	hub.outMsgHandlerPool = NewRunGoPool("hub.outMsgHandlerPool", 300, time.Millisecond*100, outMsgHandler)
 	hub.outMsgHandlerPool.Start()
 
 	return hub
@@ -195,23 +195,25 @@ func (h *Hub) handleClientMessage(client *Client, msgType int, msg []byte) {
 
 func (h *Hub) run() {
 
-	//test gc
-	go func() {
-		ticker := time.NewTicker(time.Millisecond * 1)
-		for {
-			select {
-			case <-ticker.C:
-				// log.Info("ALL Goroutine: ", runtime.NumGoroutine())
-				testData := map[string]interface{}{
-					"ids":  "uaaa, bbb",
-					"data": "abc1133",
-				}
-				pBroker.Broadcast(AppName+".push", testData)
-			case <-h.hubClosed:
-				return
-			}
-		}
-	}()
+	//test out to client msg performance
+	// go func() {
+	// 	ticker := time.NewTicker(time.Millisecond * 1)
+	// 	for {
+	// 		select {
+	// 		case <-ticker.C:
+	// 			// log.Info("ALL Goroutine: ", runtime.NumGoroutine())
+	// 			testData := map[string]interface{}{
+	// 				"ids":  "uaaa, bbb",
+	// 				"data": "abc1133",
+	// 			}
+	// 			pBroker.Broadcast(AppName+".push", testData)
+	// 			pBroker.Broadcast(AppName+".push", testData)
+	// 			pBroker.Broadcast(AppName+".push", testData)
+	// 		case <-h.hubClosed:
+	// 			return
+	// 		}
+	// 	}
+	// }()
 
 	go func() {
 		for {

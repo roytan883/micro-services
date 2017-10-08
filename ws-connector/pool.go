@@ -3,14 +3,90 @@ package main
 import (
 	"container/list"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 //PoolHander ...
 type PoolHander func(data interface{})
 
-//RunPool ...
-type RunPool struct {
+//RunGoPool ...
+type RunGoPool struct {
+	name            string
+	rate            *RateLimiter
+	dataChan        chan interface{}
+	dataChanLen     int64
+	waitDataChanLen int64
+	hander          PoolHander
+	stopChan        chan int
+	stoped          uint32
+}
+
+// NewRunGoPool creates a new rate limiter for the limit and interval.
+func NewRunGoPool(name string, limit int, interval time.Duration, hander PoolHander) *RunGoPool {
+	pool := &RunGoPool{
+		name:     name,
+		hander:   hander,
+		stopChan: make(chan int, 1),
+		dataChan: make(chan interface{}, 10000), //若缓存太大会开销太多内存
+	}
+	pool.rate = NewRateLimiter(limit, interval)
+	return pool
+}
+
+//Start ...
+func (p *RunGoPool) Start() {
+	atomic.StoreUint32(&p.stoped, 0)
+	go func() {
+		for {
+			select {
+			case <-p.stopChan:
+				return
+			case data := <-p.dataChan:
+				atomic.AddInt64(&p.dataChanLen, -1)
+				p.rate.Wait()
+				go p.hander(data)
+			}
+		}
+	}()
+}
+
+//Stop ...
+func (p *RunGoPool) Stop() {
+	atomic.AddUint32(&p.stoped, 1)
+	p.stopChan <- 1
+}
+
+//Add ...
+func (p *RunGoPool) Add(data interface{}) {
+	if atomic.LoadUint32(&p.stoped) > 0 {
+		return
+	}
+	//dataChan最大缓存10000，所以9000以下的时候，直接放进去
+	//省掉了开go协程的开销
+	if atomic.LoadInt64(&p.dataChanLen) < 9000 {
+		p.dataChan <- data
+		atomic.AddInt64(&p.dataChanLen, 1)
+	} else {
+		if atomic.LoadInt64(&p.waitDataChanLen) > 20000 {
+			log.Warnf("RunGoPool[%s] Add: waitDataChanLen > 20000, reject\n", p.name)
+			return
+		}
+		//dataChan最大缓存10000，所以9000以上的时候
+		//可能dataChan缓存已经满了，所以要开一个go 协程写入，当满缓存的时候不会卡住外面
+		log.Warnf("RunGoPool[%s] Add: dataChanLen = %d\n", p.name, atomic.LoadInt64(&p.dataChanLen))
+		atomic.AddInt64(&p.waitDataChanLen, 1)
+		log.Warnf("RunGoPool[%s] Add: waitDataChanLen = %d\n", p.name, atomic.LoadInt64(&p.waitDataChanLen))
+		go func() {
+			p.dataChan <- data
+			atomic.AddInt64(&p.dataChanLen, 1)
+			atomic.AddInt64(&p.waitDataChanLen, -1)
+		}()
+	}
+}
+
+//RunTimerPool ...
+type RunTimerPool struct {
 	rate     *RateLimiter
 	queue    *list.List
 	mtx      sync.RWMutex
@@ -18,9 +94,9 @@ type RunPool struct {
 	stopChan chan int
 }
 
-// NewRunPool creates a new rate limiter for the limit and interval(>100ms).
-func NewRunPool(limit int, interval time.Duration, hander PoolHander) *RunPool {
-	pool := &RunPool{
+// NewRunTimerPool creates a new rate limiter for the limit and interval(>100ms).
+func NewRunTimerPool(limit int, interval time.Duration, hander PoolHander) *RunTimerPool {
+	pool := &RunTimerPool{
 		hander:   hander,
 		stopChan: make(chan int, 1),
 	}
@@ -33,9 +109,9 @@ func NewRunPool(limit int, interval time.Duration, hander PoolHander) *RunPool {
 }
 
 //Start ...
-func (p *RunPool) Start() {
+func (p *RunTimerPool) Start() {
 	go func() {
-		ticker := time.NewTicker(time.Millisecond * 50)
+		ticker := time.NewTicker(time.Millisecond * 1)
 		for {
 			select {
 			case <-p.stopChan:
@@ -65,7 +141,7 @@ func (p *RunPool) Start() {
 							}
 						} else {
 							p.mtx.RLock()
-							log.Info("RunPool limited, remain len = ", p.queue.Len())
+							log.Info("RunTimerPool limited, remain len = ", p.queue.Len())
 							p.mtx.RUnlock()
 						}
 					}
@@ -76,12 +152,12 @@ func (p *RunPool) Start() {
 }
 
 //Stop ...
-func (p *RunPool) Stop() {
+func (p *RunTimerPool) Stop() {
 	p.stopChan <- 1
 }
 
 //Add ...
-func (p *RunPool) Add(data interface{}) {
+func (p *RunTimerPool) Add(data interface{}) {
 	p.mtx.Lock()
 	p.queue.PushBack(data)
 	p.mtx.Unlock()
