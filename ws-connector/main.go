@@ -36,6 +36,7 @@ func initLog() {
 }
 
 // NOTE: Use tls scheme for TLS, e.g. nats-req -s tls://demo.nats.io:4443 foo hello
+// go run .\main.go .\ws-connector.go .\hub.go .\client.go .\pool.go -s nats://192.168.1.69:12008
 // ws-connector -s nats://192.168.1.69:12008
 // ws-connector -s nats://127.0.0.1:4222
 func usage() {
@@ -56,13 +57,18 @@ func main() {
 	log.Infof("Start %s ...\n", AppName)
 
 	//get NATS server host
-	gUrls = *(flag.String("s", nats.DefaultURL, "The nats server URLs (separated by comma, default localhost:4222)"))
-	gPort = *(flag.Int("p", 12020, "listen websocket port"))
-	gID = *(flag.Int("i", 0, "ID of the service on this machine"))
+	_gUrls := flag.String("s", nats.DefaultURL, "The nats server URLs (separated by comma, default localhost:4222)")
+	_gPort := flag.Int("p", 12020, "listen websocket port")
+	_gID := flag.Int("i", 0, "ID of the service on this machine")
 	flag.Usage = usage
 	flag.Parse()
-	log.Printf("gUrls : %v\n", gUrls)
+
+	gUrls = *_gUrls
+	gPort = *_gPort
+	gID = *_gID
+
 	gNatsHosts = strings.Split(gUrls, ",")
+	log.Printf("gUrls : %v\n", gUrls)
 	log.Printf("gNatsHosts : %v\n", gNatsHosts)
 	log.Printf("gPort : %v\n", gPort)
 	log.Printf("gID : %v\n", gID)

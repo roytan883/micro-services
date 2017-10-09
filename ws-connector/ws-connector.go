@@ -68,7 +68,7 @@ func startWsService() {
 	})
 	listenHost := ":" + strconv.Itoa(gPort)
 	go func() {
-		err := http.ListenAndServe(listenHost, nil)
+		err := http.ListenAndServeTLS(listenHost, "cert_go.pem", "key_go.pem", nil)
 		if err != nil {
 			log.Fatal("exit process, http ListenAndServe err: ", err)
 			os.Exit(1)

@@ -56,9 +56,9 @@ func newHub() *Hub {
 		clientsRWMutex: new(sync.RWMutex),
 	}
 
-	hub.inMsgHandlerPool = NewRunGoPool("hub.inMsgHandlerPool", 300, time.Millisecond*100, inMsgHandler)
+	hub.inMsgHandlerPool = NewRunGoPool("hub.inMsgHandlerPool", 500, time.Millisecond*100, inMsgHandler)
 	hub.inMsgHandlerPool.Start()
-	hub.outMsgHandlerPool = NewRunGoPool("hub.outMsgHandlerPool", 300, time.Millisecond*100, outMsgHandler)
+	hub.outMsgHandlerPool = NewRunGoPool("hub.outMsgHandlerPool", 500, time.Millisecond*100, outMsgHandler)
 	hub.outMsgHandlerPool.Start()
 
 	return hub
@@ -76,9 +76,10 @@ func inMsgHandler(data interface{}) {
 	if !ok {
 		return
 	}
-	log.Infof("Hub handleMessage from client[%s] msgType[%d] msg: %s\n", m.c.ID, m.msgType, m.msg)
+	log.Infof("inMsgHandler: from client[%s] msgType[%d] msg: %s\n", m.c.ID, m.msgType, m.msg)
 	m.h.clientsRWMutex.RLock()
 	for _, client := range m.h.clients {
+		log.Info("inMsgHandler: check client = ", client.ID)
 		client.send(m.msg)
 	}
 	m.h.clientsRWMutex.RUnlock()
