@@ -35,6 +35,10 @@ func initLog() {
 	log.WithFields(logrus.Fields{"package": AppName})
 }
 
+//TLS:
+//openssl genrsa -out key_go.pem 1024
+//openssl req -new -x509 -key key_go.pem -out cert_go.pem -days 36500
+
 // NOTE: Use tls scheme for TLS, e.g. nats-req -s tls://demo.nats.io:4443 foo hello
 // go run .\main.go .\ws-connector.go .\hub.go .\client.go .\pool.go -s nats://192.168.1.69:12008
 // ws-connector -s nats://192.168.1.69:12008
