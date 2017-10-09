@@ -36,7 +36,7 @@ func initLog() {
 }
 
 //TLS:
-//openssl genrsa -out key_go.pem 1024
+//openssl genrsa -out key_go.pem 2048
 //openssl req -new -x509 -key key_go.pem -out cert_go.pem -days 36500
 
 // NOTE: Use tls scheme for TLS, e.g. nats-req -s tls://demo.nats.io:4443 foo hello
