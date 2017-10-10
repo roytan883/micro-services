@@ -35,20 +35,6 @@ type Hub struct {
 	outMsgHandlerPool *RunGoPool
 }
 
-type gCmdType uint32
-
-const (
-	gCmdPush gCmdType = iota
-	gCmdKick
-	gCmdClose
-)
-
-type gCommand struct {
-	cmdType  gCmdType
-	clientID string
-	message  []byte
-}
-
 func newHub() *Hub {
 	hub := &Hub{
 		hubClosed:      make(chan int, 10),

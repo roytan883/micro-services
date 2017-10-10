@@ -9,7 +9,6 @@ import (
 	"runtime/pprof"
 	"strconv"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/json-iterator/go"
@@ -19,13 +18,6 @@ import (
 )
 
 var gMoleculerService *moleculer.Service
-
-const (
-	cgListenPush           = AppName + ".in.push"
-	cgBroadcastUserOnline  = AppName + ".out.userOnline"
-	cgBroadcastUserOffline = AppName + ".out.userOffline"
-	cgBroadcastAck         = AppName + ".out.ack"
-)
 
 func createMoleculerService() moleculer.Service {
 	gMoleculerService = &moleculer.Service{
@@ -56,8 +48,6 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 	}
 	http.ServeFile(w, r, "home.html")
 }
-
-var gHub *Hub
 
 //TODO: change this salt in PRODUCTION
 const sha256salt string = "d9cd5e3663eefbe5868e903cc68f895bd849b3bb374b2aa0cff80bb16cb4e63d"
@@ -112,7 +102,7 @@ func gettoken(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-var gClientID uint64
+// var gClientID uint64
 
 // serveWs handles websocket requests from the peer.
 func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
@@ -181,8 +171,8 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	atomic.AddUint64(&gClientID, 1)
-	log.Warn("websocket connection times: ", atomic.LoadUint64(&gClientID))
+	// atomic.AddUint64(&gClientID, 1)
+	// log.Warn("websocket connection times: ", atomic.LoadUint64(&gClientID))
 
 	client := &Client{
 		// ID:           strconv.Itoa(int(gClientID)),
@@ -249,22 +239,6 @@ func push(req *protocol.MsRequest) (interface{}, error) {
 	}
 	return data, nil
 	// return nil, errors.New("test return error in push")
-}
-
-type ackStruct struct {
-	Aid    string `json:"aid"`
-	Cid    string `json:"cid"`
-	UserID string `json:"userID"`
-}
-
-type msgStruct struct {
-	Mid string      `json:"mid"`
-	Msg interface{} `json:"msg"`
-}
-
-type pushMsgStruct struct {
-	IDs  interface{} `json:"ids"`
-	Data msgStruct   `json:"data"`
 }
 
 //mol repl: emit ws-connector.in.push --ids u1507627722361_web --data.mid aaaabbbb --data.msg hello
