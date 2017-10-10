@@ -8,6 +8,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 // Hub maintains the set of active clients and broadcasts messages to the
@@ -15,16 +17,17 @@ import (
 type Hub struct {
 	// Registered clients.
 	clients        map[string]*Client
+	clientIDs      map[string]map[string]*Client
 	clientsRWMutex *sync.RWMutex
 
 	// Inbound messages from the clients.
 	broadcast chan []byte
 
 	// Register requests from the clients.
-	register chan *Client
+	registerChan chan *Client
 
-	// Unregister requests from clients.
-	unregister chan *Client
+	// UnregisterChan requests from clients.
+	unregisterChan chan *Client
 
 	hubClosed chan int
 
@@ -50,9 +53,10 @@ func newHub() *Hub {
 	hub := &Hub{
 		hubClosed:      make(chan int, 10),
 		broadcast:      make(chan []byte, 1000),
-		register:       make(chan *Client, 1000),
-		unregister:     make(chan *Client, 1000),
+		registerChan:   make(chan *Client, 1000),
+		unregisterChan: make(chan *Client, 1000),
 		clients:        make(map[string]*Client),
+		clientIDs:      make(map[string]map[string]*Client),
 		clientsRWMutex: new(sync.RWMutex),
 	}
 
@@ -76,10 +80,23 @@ func inMsgHandler(data interface{}) {
 	if !ok {
 		return
 	}
-	log.Infof("inMsgHandler: from client[%s] msgType[%d] msg: %s\n", m.c.ID, m.msgType, m.msg)
+	log.Infof("inMsgHandler: from client[%s] msgType[%d] msg: %s\n", m.c.Cid, m.msgType, m.msg)
+
+	jsonObj := &ackStruct{}
+	err := jsoniter.Unmarshal(m.msg, jsonObj)
+	if err == nil {
+		if len(jsonObj.Aid) > 0 {
+			log.Info("inMsgHandler, handle ACK = ", jsonObj.Aid)
+			jsonObj.Cid = m.c.Cid
+			jsonObj.UserID = m.c.UserID
+			pBroker.Broadcast(cgBroadcastAck, jsonObj)
+			return
+		}
+	}
+
 	m.h.clientsRWMutex.RLock()
 	for _, client := range m.h.clients {
-		log.Info("inMsgHandler: check client = ", client.ID)
+		log.Info("inMsgHandler: check client = ", client.Cid)
 		client.send(m.msg)
 	}
 	m.h.clientsRWMutex.RUnlock()
@@ -114,12 +131,17 @@ func outMsgHandler(data interface{}) {
 		return
 	}
 
-	// log.Infof("Hub outMsgHandler from client[%s] msgType[%d] msg: %s\n", m.c.ID, m.msgType, m.msg)
+	// log.Infof("Hub outMsgHandler from client[%s] msgType[%d] msg: %s\n", m.c.Cid, m.msgType, m.msg)
 	for _, clientID := range m.ids {
 		// log.Infof("Hub outMsgHandler to client[%s]\n", clientID)
 		m.h.clientsRWMutex.RLock()
 		if client, ok := m.h.clients[clientID]; ok {
-			client.sendChan <- m.msg
+			client.send(m.msg)
+		}
+		if clientIDs, ok := m.h.clientIDs[clientID]; ok {
+			for _, v := range clientIDs {
+				v.send(m.msg)
+			}
 		}
 		m.h.clientsRWMutex.RUnlock()
 	}
@@ -219,9 +241,22 @@ func (h *Hub) run() {
 	go func() {
 		for {
 			select {
-			case client := <-h.register:
+			case client := <-h.registerChan:
 				h.clientsRWMutex.Lock()
-				h.clients[client.ID] = client
+
+				//userID_platform save
+				h.clients[client.Cid] = client
+
+				//userID save
+				_, ok := h.clientIDs[client.UserID]
+				if !ok {
+					h.clientIDs[client.UserID] = make(map[string]*Client)
+				}
+				clientIDs, ok := h.clientIDs[client.UserID]
+				if ok {
+					clientIDs[client.Cid] = client
+				}
+
 				h.clientsRWMutex.Unlock()
 			case <-h.hubClosed:
 				return
@@ -231,11 +266,25 @@ func (h *Hub) run() {
 	go func() {
 		for {
 			select {
-			case client := <-h.unregister:
+			case client := <-h.unregisterChan:
 				h.clientsRWMutex.RLock()
-				if _, ok := h.clients[client.ID]; ok {
+				if _, ok := h.clients[client.Cid]; ok {
 					h.clientsRWMutex.Lock()
-					delete(h.clients, client.ID)
+
+					//userID_platform delete
+					delete(h.clients, client.Cid)
+
+					//userID delete
+					clientIDs, ok := h.clientIDs[client.UserID]
+					if ok {
+						if _, ok := clientIDs[client.Cid]; ok {
+							delete(clientIDs, client.Cid)
+						}
+						if len(clientIDs) < 1 {
+							delete(h.clientIDs, client.UserID)
+						}
+					}
+
 					h.clientsRWMutex.Unlock()
 					client.close()
 				}
@@ -264,9 +313,9 @@ func (h *Hub) run() {
 	// }()
 	// for {
 	// 	select {
-	// 	case client := <-h.register:
+	// 	case client := <-h.registerChan:
 	// 		h.clients[client] = true
-	// 	case client := <-h.unregister:
+	// 	case client := <-h.unregisterChan:
 	// 		if _, ok := h.clients[client]; ok {
 	// 			delete(h.clients, client)
 	// 			client.close()
@@ -283,4 +332,16 @@ func (h *Hub) run() {
 	// 		}
 	// 	}
 	// }
+}
+
+func (h *Hub) register(c *Client) {
+	h.registerChan <- c
+	log.Info("Hub register: client = ", c)
+	pBroker.Broadcast(cgBroadcastUserOnline, c)
+}
+
+func (h *Hub) unregister(c *Client) {
+	h.unregisterChan <- c
+	log.Info("Hub unregister: client = ", c)
+	pBroker.Broadcast(cgBroadcastUserOffline, c)
 }

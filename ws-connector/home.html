@@ -28,33 +28,73 @@ window.onload = function () {
         return false;
     };
 
-    if (window["WebSocket"]) {
-        var urlString = "wss://" + document.location.host + "/ws?"
-        urlString += "userID=u" + Date.now()
-        // urlString += "userID=uaaa"
-        urlString += "&platform=web"
-        urlString += "&token=token1111"
+    function NewWebSocket() {
+        var userID = "u" + Date.now()
+        var platform = "web"
+        var version = "0.1.0"
 
-        // conn = new WebSocket("ws://" + document.location.host + "/ws?abc=123&def=aaa");
-        conn = new WebSocket(urlString);
-        conn.onopen = function (evt) {
-            var item = document.createElement("div");
-            item.innerHTML = "<b>Connection opened.</b>";
-            appendLog(item);
-        };
-        conn.onclose = function (evt) {
-            var item = document.createElement("div");
-            item.innerHTML = "<b>Connection closed.</b>";
-            appendLog(item);
-        };
-        conn.onmessage = function (evt) {
-            var messages = evt.data.split('\n');
-            for (var i = 0; i < messages.length; i++) {
-                var item = document.createElement("div");
-                item.innerText = messages[i];
-                appendLog(item);
-            }
-        };
+        var getTokenUrl = "/gettoken?" + "userID=" + userID + "&platform=" + platform + "&version=" + version
+
+        var xhr = new XMLHttpRequest();  
+        xhr.onreadystatechange = function() {//服务器返回值的处理函数，此处使用匿名函数进行实现  
+            if (xhr.readyState == 4 && xhr.status == 200) {//  
+                var responseText = xhr.responseText;  
+                jsonObj = JSON.parse(responseText)
+                if (jsonObj.timestamp && jsonObj.token) {
+                    var urlString = "wss://" + document.location.host + "/ws?"
+                    urlString += "userID=" + userID + "&platform=" + platform + "&version=" + version + "&timestamp=" + jsonObj.timestamp + "&token=" + jsonObj.token
+                    console.log("websocket url = ", urlString)
+                    // urlString += "userID=u" + Date.now()
+                    // // urlString += "userID=uaaa"
+                    // urlString += "&platform=web"
+                    // urlString += "&token=token1111"
+
+                    // conn = new WebSocket("ws://" + document.location.host + "/ws?abc=123&def=aaa");
+                    conn = new WebSocket(urlString);
+                    conn.onopen = function (evt) {
+                        var item = document.createElement("div");
+                        item.innerHTML = "<b>Connection opened.</b>";
+                        appendLog(item);
+                    };
+                    conn.onclose = function (evt) {
+                        var item = document.createElement("div");
+                        item.innerHTML = "<b>Connection closed.</b>";
+                        appendLog(item);
+                    };
+                    conn.onmessage = function (evt) {
+                        var isJson = false
+                        try {
+                            var jsonObj = JSON.parse(evt.data)
+                            if (jsonObj.mid && jsonObj.msg) {
+                                isJson = true
+                                var item = document.createElement("div");
+                                item.innerText = jsonObj.msg;
+                                appendLog(item);
+                                conn.send(JSON.stringify({
+                                    aid: jsonObj.mid
+                                }))
+                            }
+                        } catch (error) {
+                            
+                        }
+                        if (!isJson) {
+                            var messages = evt.data.split('\n');
+                            for (var i = 0; i < messages.length; i++) {
+                                var item = document.createElement("div");
+                                item.innerText = messages[i];
+                                appendLog(item);
+                            }
+                        }                        
+                    };
+                }
+            }  
+        };  
+        xhr.open("GET", getTokenUrl, true);//提交get请求到服务器  
+        xhr.send(null) 
+    }
+
+    if (window["WebSocket"]) {
+        NewWebSocket()
     } else {
         var item = document.createElement("div");
         item.innerHTML = "<b>Your browser does not support WebSockets.</b>";
