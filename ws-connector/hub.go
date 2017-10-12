@@ -5,6 +5,7 @@
 package main
 
 import (
+	"errors"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -80,22 +81,22 @@ func inMsgHandler(data interface{}) {
 		}
 	}
 
-	m.h.clientsRWMutex.RLock()
+	// m.h.clientsRWMutex.RLock()
 	for _, client := range m.h.clients {
 		log.Info("inMsgHandler: check client = ", client.Cid)
 		client.send(m.msg)
 	}
-	m.h.clientsRWMutex.RUnlock()
+	// m.h.clientsRWMutex.RUnlock()
 
 	//test only
 	msgStr := string(m.msg)
 	if msgStr == "close" {
 		log.Warn("Hub Close all client on test close message")
-		m.h.clientsRWMutex.RLock()
+		// m.h.clientsRWMutex.RLock()
 		for _, client := range m.h.clients {
 			client.close()
 		}
-		m.h.clientsRWMutex.RUnlock()
+		// m.h.clientsRWMutex.RUnlock()
 	}
 }
 
@@ -120,16 +121,16 @@ func outMsgHandler(data interface{}) {
 	// log.Infof("Hub outMsgHandler from client[%s] msgType[%d] msg: %s\n", m.c.Cid, m.msgType, m.msg)
 	for _, clientID := range m.ids {
 		// log.Infof("Hub outMsgHandler to client[%s]\n", clientID)
-		m.h.clientsRWMutex.RLock()
+		// m.h.clientsRWMutex.RLock()
 		if client, ok := m.h.clients[clientID]; ok {
 			client.send(m.msg)
 		}
 		if clientIDs, ok := m.h.clientIDs[clientID]; ok {
-			for _, v := range clientIDs {
-				v.send(m.msg)
+			for _, client := range clientIDs {
+				client.send(m.msg)
 			}
 		}
-		m.h.clientsRWMutex.RUnlock()
+		// m.h.clientsRWMutex.RUnlock()
 	}
 }
 
@@ -160,11 +161,11 @@ func (h *Hub) sendMessage(ids []string, msg []byte) {
 	// log.Info("Hub sendMessage msg: ", string(msg))
 
 	// for _, clientID := range ids {
-	// 	h.clientsRWMutex.RLock()
+	// 	// h.clientsRWMutex.RLock()
 	// 	if client, ok := h.clients[clientID]; ok {
 	// 		client.sendChan <- msg
 	// 	}
-	// 	h.clientsRWMutex.RUnlock()
+	// 	// h.clientsRWMutex.RUnlock()
 	// }
 
 	h.outMsgHandlerPool.Add(&outMsg{
@@ -228,7 +229,13 @@ func (h *Hub) run() {
 		for {
 			select {
 			case client := <-h.registerChan:
-				h.clientsRWMutex.Lock()
+				// h.clientsRWMutex.Lock()
+
+				if oldClient, ok := h.clients[client.Cid]; ok {
+					delete(h.clients, client.Cid)
+					log.Info("kick1 old client: ", client.Cid)
+					oldClient.kick()
+				}
 
 				//userID_platform save
 				h.clients[client.Cid] = client
@@ -240,10 +247,15 @@ func (h *Hub) run() {
 				}
 				clientIDs, ok := h.clientIDs[client.UserID]
 				if ok {
+					if oldClient, ok := clientIDs[client.Cid]; ok {
+						delete(clientIDs, client.Cid)
+						log.Info("kick2 old client: ", client.Cid)
+						oldClient.kick()
+					}
 					clientIDs[client.Cid] = client
 				}
 
-				h.clientsRWMutex.Unlock()
+				// h.clientsRWMutex.Unlock()
 			case <-h.hubClosed:
 				return
 			}
@@ -253,12 +265,14 @@ func (h *Hub) run() {
 		for {
 			select {
 			case client := <-h.unregisterChan:
-				h.clientsRWMutex.RLock()
+				// h.clientsRWMutex.RLock()
 				if _, ok := h.clients[client.Cid]; ok {
-					h.clientsRWMutex.Lock()
+					// h.clientsRWMutex.Lock()
 
 					//userID_platform delete
-					delete(h.clients, client.Cid)
+					if _, ok := h.clients[client.Cid]; ok {
+						delete(h.clients, client.Cid)
+					}
 
 					//userID delete
 					clientIDs, ok := h.clientIDs[client.UserID]
@@ -271,10 +285,10 @@ func (h *Hub) run() {
 						}
 					}
 
-					h.clientsRWMutex.Unlock()
+					// h.clientsRWMutex.Unlock()
 					client.close()
 				}
-				h.clientsRWMutex.RUnlock()
+				// h.clientsRWMutex.RUnlock()
 			case <-h.hubClosed:
 				return
 			}
@@ -330,4 +344,54 @@ func (h *Hub) unregister(c *Client) {
 	h.unregisterChan <- c
 	log.Info("Hub unregister: client = ", c)
 	pBroker.Broadcast(cgBroadcastUserOffline, c)
+}
+
+func (h *Hub) count() int {
+	// h.clientsRWMutex.RLock()
+	count := len(h.clients)
+	// h.clientsRWMutex.RUnlock()
+	log.Info("Hub count: ", count)
+	return count
+}
+
+func (h *Hub) kickClient(userID string, cid string) {
+	log.Info("Hub kickClient: userID = ", userID)
+	log.Info("Hub kickClient: cid = ", cid)
+	// h.clientsRWMutex.RLock()
+	log.Info("Hub kickClient: h.clientIDs = ", h.clientIDs)
+	if clientIDs, ok := h.clientIDs[userID]; ok {
+		log.Info("Hub kickClient: has userID = ", userID)
+		if client, ok := clientIDs[cid]; ok {
+			log.Info("Hub kickClient: has cid = ", cid)
+			client.kick()
+		}
+	}
+	// h.clientsRWMutex.RUnlock()
+}
+
+func (h *Hub) kickUser(userID string) {
+	log.Info("Hub kickUser: userID = ", userID)
+	// h.clientsRWMutex.RLock()
+	if clientIDs, ok := h.clientIDs[userID]; ok {
+		for _, client := range clientIDs {
+			client.kick()
+		}
+	}
+	// h.clientsRWMutex.RUnlock()
+}
+
+//call ws-connector.getUserOnlineInfo --userID uaaa
+func (h *Hub) getUserOnlineInfo(userID string) ([]*Client, error) {
+	log.Info("Hub getUserOnlineInfo: userID = ", userID)
+	clientInfo := make([]*Client, 0)
+	// h.clientsRWMutex.RLock()
+	if clientIDs, ok := h.clientIDs[userID]; ok {
+		for _, client := range clientIDs {
+			clientInfo = append(clientInfo, client)
+		}
+		// gHub.clientsRWMutex.RUnlock()
+		return clientInfo, nil
+	}
+	// h.clientsRWMutex.RUnlock()
+	return nil, errors.New("Cant find userID: " + userID)
 }

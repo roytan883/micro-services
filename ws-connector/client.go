@@ -12,8 +12,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-
-
 var (
 	newline = []byte{'\n'}
 	space   = []byte{' '}
@@ -55,6 +53,16 @@ func (c *Client) send(data []byte) {
 	c.sendChan <- data
 }
 
+func (c *Client) kick() {
+	if atomic.LoadInt32(&c.closed) > 0 {
+		return //already closed
+	}
+	log.Printf("client[%s] kick:", c.Cid)
+	c.conn.SetWriteDeadline(time.Now().Add(time.Second * 3))
+	c.conn.WriteMessage(websocket.TextMessage, []byte("Kicked"))
+	c.close()
+}
+
 func (c *Client) close() {
 	if atomic.LoadInt32(&c.closed) > 0 {
 		return //already closed
@@ -82,12 +90,12 @@ func (c *Client) readPump() {
 	// c.conn.SetReadLimit(maxMessageSize)
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error {
-		log.Infof("client[%s] PongHandler\n", c.Cid)
+		// log.Infof("client[%s] PongHandler\n", c.Cid)
 		c.conn.SetReadDeadline(time.Now().Add(pongWait))
 		return nil
 	})
 	c.conn.SetPingHandler(func(string) error {
-		log.Infof("client[%s] PingHandler\n", c.Cid)
+		// log.Infof("client[%s] PingHandler\n", c.Cid)
 		c.conn.SetReadDeadline(time.Now().Add(pongWait))
 		c.sendPongChan <- 1 //use writePump to send pong, avoid write conflict
 		return nil

@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/sha1"
+	"errors"
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
@@ -27,13 +28,141 @@ func createMoleculerService() moleculer.Service {
 	}
 
 	//init actions handlers
-	// gMoleculerService.Actions["push"] = push
+	gMoleculerService.Actions["count"] = actionCount
+	gMoleculerService.Actions["getUserOnlineInfo"] = actionGetUserOnlineInfo
 
 	//init listen events handlers
-	// gMoleculerService.Events["eventA"] = onEventA
-	gMoleculerService.Events[cgListenPush] = onEventPush
+	gMoleculerService.Events[cgListenKickClient] = eventInKickClient
+	gMoleculerService.Events[cgListenKickUser] = eventInKickUser
+	gMoleculerService.Events[cgListenPush] = eventInPush
 
 	return *gMoleculerService
+}
+
+func actionCount(req *protocol.MsRequest) (interface{}, error) {
+	log.Info("run actionCount")
+	count := gHub.count()
+	log.Info("run actionCount, count: ", count)
+	return count, nil
+}
+
+func actionGetUserOnlineInfo(req *protocol.MsRequest) (interface{}, error) {
+	log.Info("run actionGetUserOnlineInfo, req.Params = ", req.Params)
+	jsonString, err := jsoniter.Marshal(req.Params)
+	if err != nil {
+		log.Warn("run eventInKick, parse req.Data to jsonString error: ", err)
+		return nil, errors.New("parse error")
+	}
+	jsonObj := &getUserOnlineInfoStruct{}
+	err = jsoniter.Unmarshal(jsonString, jsonObj)
+	if err != nil {
+		log.Warn("run eventInKick, parse req.Data to jsonObj getUserOnlineInfoStruct error: ", err)
+		return nil, errors.New("parse error")
+	}
+	if len(jsonObj.UserID) > 0 {
+		return gHub.getUserOnlineInfo(jsonObj.UserID)
+	}
+	return nil, errors.New("userID error: " + jsonObj.UserID)
+}
+
+func eventInKickClient(req *protocol.MsEvent) {
+	log.Info("run eventInKickClient, req.Data = ", req.Data)
+	jsonString, err := jsoniter.Marshal(req.Data)
+	if err != nil {
+		log.Warn("run eventInKickClient, parse req.Data to jsonString error: ", err)
+		return
+	}
+	jsonObj := &kickClientStruct{}
+	err = jsoniter.Unmarshal(jsonString, jsonObj)
+	if err != nil {
+		log.Warn("run eventInKickClient, parse req.Data to jsonObj kickClientStruct error: ", err)
+		return
+	}
+	if len(jsonObj.Cid) > 0 && len(jsonObj.UserID) > 0 {
+		gHub.kickClient(jsonObj.UserID, jsonObj.Cid)
+	}
+}
+
+func eventInKickUser(req *protocol.MsEvent) {
+	log.Info("run eventInKickUser, req.Data = ", req.Data)
+	jsonString, err := jsoniter.Marshal(req.Data)
+	if err != nil {
+		log.Warn("run eventInKickUser, parse req.Data to jsonString error: ", err)
+		return
+	}
+	jsonObj := &kickUserStruct{}
+	err = jsoniter.Unmarshal(jsonString, jsonObj)
+	if err != nil {
+		log.Warn("run eventInKickUser, parse req.Data to jsonObj kickUserStruct error: ", err)
+		return
+	}
+	if len(jsonObj.UserID) > 0 {
+		gHub.kickUser(jsonObj.UserID)
+	}
+}
+
+//mol repl: emit ws-connector.in.push --ids u1507627722361_web --data.mid aaaabbbb --data.msg hello
+
+//if only userID, then push to all platfrom of userID
+//mol repl: emit ws-connector.in.push --ids u1507627722361 --data.mid aaaabbbb --data.msg hello
+func eventInPush(req *protocol.MsEvent) {
+	log.Info("run eventInPush, req.Data = ", req.Data)
+	jsonString, err := jsoniter.Marshal(req.Data)
+	if err != nil {
+		log.Warn("run eventInPush, parse req.Data to jsonString error: ", err)
+		return
+	}
+	// log.Info("jsonString = ", string(jsonString))
+	// jsonString = []byte("{\"ids\":[\"uaaa\",\"bbb\"],\"data\":\"abc123\"}")
+	// log.Info("jsonString = ", string(jsonString))
+	jsonObj := &pushMsgStruct{}
+	err = jsoniter.Unmarshal(jsonString, jsonObj)
+	if err != nil {
+		log.Warn("run eventInPush, parse req.Data to jsonObj error: ", err)
+		return
+	}
+	log.Info("run eventInPush, jsonObj = ", jsonObj)
+	// log.Info("jsonObj = ", jsonObj)
+	// log.Info("jsonObj IDs = ", jsonObj.IDs)
+	// log.Info("jsonObj Data = ", jsonObj.Data)
+	data, err := jsoniter.Marshal(jsonObj.Data)
+	if err != nil {
+		log.Warn("run eventInPush, parse jsonObj.Data to data error: ", err)
+		return
+	}
+
+	// log.Info("type:", reflect.TypeOf(jsonObj.IDs))
+
+	switch jsonObj.IDs.(type) {
+	case []string:
+		gHub.sendMessage(jsonObj.IDs.([]string), data)
+	case []interface{}:
+		ids := make([]string, 0)
+		_ids := jsonObj.IDs.([]interface{})
+		for _, v := range _ids {
+			if sv, ok := v.(string); ok {
+				ids = append(ids, sv)
+			}
+		}
+		gHub.sendMessage(ids, data)
+	case string:
+		ids := strings.Split(jsonObj.IDs.(string), ",")
+		gHub.sendMessage(ids, data)
+	default:
+		log.Info("can't parse  jsonObj.IDs")
+	}
+
+	// if ids1, ok := jsonObj.IDs.(stringArray); ok {
+	// 	gHub.sendMessage(ids1, data)
+	// 	return
+	// }
+	// if ids2, ok := jsonObj.IDs.(string); ok {
+	// 	ids3 := strings.Split(ids2, ",")
+	// 	gHub.sendMessage(ids3, data)
+	// 	return
+	// }
+	// log.Info("can't parse  jsonObj.IDs")
+	// gHub.sendMessage(jsonObj.IDs, []byte(jsonObj.Data))
 }
 
 func serveHome(w http.ResponseWriter, r *http.Request) {
@@ -239,69 +368,4 @@ func push(req *protocol.MsRequest) (interface{}, error) {
 	}
 	return data, nil
 	// return nil, errors.New("test return error in push")
-}
-
-//mol repl: emit ws-connector.in.push --ids u1507627722361_web --data.mid aaaabbbb --data.msg hello
-
-//if only userID, then push to all platfrom of userID
-//mol repl: emit ws-connector.in.push --ids u1507627722361 --data.mid aaaabbbb --data.msg hello
-
-func onEventPush(req *protocol.MsEvent) {
-	log.Info("run onEventPush, req.Data = ", req.Data)
-	jsonString, err := jsoniter.Marshal(req.Data)
-	if err != nil {
-		log.Warn("run onEventPush, parse req.Data to jsonString error: ", err)
-		return
-	}
-	// log.Info("jsonString = ", string(jsonString))
-	// jsonString = []byte("{\"ids\":[\"uaaa\",\"bbb\"],\"data\":\"abc123\"}")
-	// log.Info("jsonString = ", string(jsonString))
-	jsonObj := &pushMsgStruct{}
-	err = jsoniter.Unmarshal(jsonString, jsonObj)
-	if err != nil {
-		log.Warn("run onEventPush, parse req.Data to jsonObj error: ", err)
-		return
-	}
-	log.Info("run onEventPush, jsonObj = ", jsonObj)
-	// log.Info("jsonObj = ", jsonObj)
-	// log.Info("jsonObj IDs = ", jsonObj.IDs)
-	// log.Info("jsonObj Data = ", jsonObj.Data)
-	data, err := jsoniter.Marshal(jsonObj.Data)
-	if err != nil {
-		log.Warn("run onEventPush, parse jsonObj.Data to data error: ", err)
-		return
-	}
-
-	// log.Info("type:", reflect.TypeOf(jsonObj.IDs))
-
-	switch jsonObj.IDs.(type) {
-	case []string:
-		gHub.sendMessage(jsonObj.IDs.([]string), data)
-	case []interface{}:
-		ids := make([]string, 0)
-		_ids := jsonObj.IDs.([]interface{})
-		for _, v := range _ids {
-			if sv, ok := v.(string); ok {
-				ids = append(ids, sv)
-			}
-		}
-		gHub.sendMessage(ids, data)
-	case string:
-		ids := strings.Split(jsonObj.IDs.(string), ",")
-		gHub.sendMessage(ids, data)
-	default:
-		log.Info("can't parse  jsonObj.IDs")
-	}
-
-	// if ids1, ok := jsonObj.IDs.(stringArray); ok {
-	// 	gHub.sendMessage(ids1, data)
-	// 	return
-	// }
-	// if ids2, ok := jsonObj.IDs.(string); ok {
-	// 	ids3 := strings.Split(ids2, ",")
-	// 	gHub.sendMessage(ids3, data)
-	// 	return
-	// }
-	// log.Info("can't parse  jsonObj.IDs")
-	// gHub.sendMessage(jsonObj.IDs, []byte(jsonObj.Data))
 }

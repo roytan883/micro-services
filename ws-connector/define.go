@@ -36,19 +36,9 @@ const (
 type gCmdType uint32
 
 const (
-	gCmdPush gCmdType = iota
-	gCmdKick
-	gCmdClose
-)
-
-type gCommand struct {
-	cmdType  gCmdType
-	clientID string
-	message  []byte
-}
-
-const (
 	cgListenPush           = AppName + ".in.push"
+	cgListenKickClient     = AppName + ".in.kickClient"
+	cgListenKickUser       = AppName + ".in.kickUser"
 	cgBroadcastUserOnline  = AppName + ".out.userOnline"
 	cgBroadcastUserOffline = AppName + ".out.userOffline"
 	cgBroadcastAck         = AppName + ".out.ack"
@@ -68,4 +58,17 @@ type msgStruct struct {
 type pushMsgStruct struct {
 	IDs  interface{} `json:"ids"`
 	Data msgStruct   `json:"data"`
+}
+
+type kickClientStruct struct {
+	Cid    string `json:"cid"`
+	UserID string `json:"userID"`
+}
+
+type kickUserStruct struct {
+	UserID string `json:"userID"`
+}
+
+type getUserOnlineInfoStruct struct {
+	UserID string `json:"userID"`
 }
