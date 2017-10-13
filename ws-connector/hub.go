@@ -202,6 +202,14 @@ func (h *Hub) run() {
 				if ok {
 					userID2Cids.(*sync.Map).Delete(client.Cid)
 				}
+				count := 0
+				userID2Cids.(*sync.Map).Range(func(key, value interface{}) bool {
+					count++
+					return true
+				})
+				if count == 0 {
+					h.userID2Cids.Delete(client.UserID)
+				}
 			case <-h.hubClosed:
 				return
 			}
