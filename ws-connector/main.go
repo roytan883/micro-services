@@ -130,6 +130,7 @@ func main() {
 	log.Warnf("gNatsHosts : %v\n", gNatsHosts)
 	log.Warnf("gPort : %v\n", gPort)
 	log.Warnf("gID : %v\n", gID)
+	log.Warnf("gIsDebug : %v\n", gIsDebug)
 
 	gNodeID += "-" + strconv.Itoa(gID)
 	log.Warnf("gNodeID : %v\n", gNodeID)
