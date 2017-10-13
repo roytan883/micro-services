@@ -35,6 +35,7 @@ func createMoleculerService() moleculer.Service {
 	gMoleculerService.Events[cgListenKickClient] = eventInKickClient
 	gMoleculerService.Events[cgListenKickUser] = eventInKickUser
 	gMoleculerService.Events[cgListenPush] = eventInPush
+	gMoleculerService.Events[cgListeSyncUsersInfo] = eventInSyncUsersInfo
 
 	return *gMoleculerService
 }
@@ -63,6 +64,11 @@ func actionGetUserOnlineInfo(req *protocol.MsRequest) (interface{}, error) {
 		return gHub.getUserOnlineInfo(jsonObj.UserID)
 	}
 	return nil, errors.New("userID error: " + jsonObj.UserID)
+}
+
+func eventInSyncUsersInfo(req *protocol.MsEvent) {
+	log.Info("run eventInSyncUsersInfo")
+	gHub.syncUsersInfo()
 }
 
 func eventInKickClient(req *protocol.MsEvent) {
@@ -305,16 +311,18 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 
 	client := &Client{
 		// ID:           strconv.Itoa(int(gClientID)),
-		Cid:          fmt.Sprintf("%s_%s", userID, platform),
-		UserID:       userID,
-		Platform:     platform,
-		Version:      version,
-		Timestamp:    timestamp,
-		Token:        token,
-		hub:          hub,
-		conn:         conn,
-		sendChan:     make(chan []byte, 10),
-		sendPongChan: make(chan int, 10),
+		Cid:            fmt.Sprintf("%s_%s", userID, platform),
+		UserID:         userID,
+		Platform:       platform,
+		Version:        version,
+		Timestamp:      timestamp,
+		Token:          token,
+		ConnectTime:    strconv.Itoa(int(time.Now().UnixNano() / 1e6)),
+		DisconnectTime: "0",
+		hub:            hub,
+		conn:           conn,
+		sendChan:       make(chan []byte, 10),
+		sendPongChan:   make(chan int, 10),
 	}
 	gHub.register(client)
 

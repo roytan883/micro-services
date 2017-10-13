@@ -36,12 +36,14 @@ const (
 type gCmdType uint32
 
 const (
-	cgListenPush           = AppName + ".in.push"
-	cgListenKickClient     = AppName + ".in.kickClient"
-	cgListenKickUser       = AppName + ".in.kickUser"
-	cgBroadcastUserOnline  = AppName + ".out.userOnline"
-	cgBroadcastUserOffline = AppName + ".out.userOffline"
-	cgBroadcastAck         = AppName + ".out.ack"
+	cgListenPush             = AppName + ".in.push"
+	cgListenKickClient       = AppName + ".in.kickClient"
+	cgListenKickUser         = AppName + ".in.kickUser"
+	cgListeSyncUsersInfo     = AppName + ".in.syncUsersInfo"
+	cgBroadcastUserOnline    = AppName + ".out.userOnline"
+	cgBroadcastUserOffline   = AppName + ".out.userOffline"
+	cgBroadcastAck           = AppName + ".out.ack"
+	cgBroadcastSyncUsersInfo = AppName + ".out.syncUsersInfo"
 )
 
 type ackStruct struct {

@@ -6,6 +6,7 @@ package main
 
 import (
 	"errors"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -29,6 +30,8 @@ type Hub struct {
 
 	inMsgHandlerPool  *RunGoPool
 	outMsgHandlerPool *RunGoPool
+
+	isDoingSyncUsersInfo int32
 }
 
 func newHub() *Hub {
@@ -46,11 +49,30 @@ func newHub() *Hub {
 	return hub
 }
 
+// 枚举
+type inMsgType int
+
+const (
+	clientMsg     inMsgType = iota // value --> 0
+	syncUsersInfo                  // value --> 1
+)
+
+func (it inMsgType) String() string {
+	switch it {
+	case clientMsg:
+		return "clientMsg"
+	case syncUsersInfo:
+		return "syncUsersInfo"
+	default:
+		return "Unknow"
+	}
+}
+
 type inMsg struct {
-	h       *Hub
-	c       *Client
-	msgType int
-	msg     []byte
+	h   *Hub
+	c   *Client
+	t   inMsgType
+	msg []byte
 }
 
 func inMsgHandler(data interface{}) {
@@ -58,34 +80,42 @@ func inMsgHandler(data interface{}) {
 	if !ok {
 		return
 	}
-	log.Infof("inMsgHandler: from client[%s] msgType[%d] msg: %s\n", m.c.Cid, m.msgType, m.msg)
+	log.Infof("inMsgHandler: from client[%s] msgType[%s] msg: %s\n", m.c.Cid, m.t, m.msg)
 
-	jsonObj := &ackStruct{}
-	err := jsoniter.Unmarshal(m.msg, jsonObj)
-	if err == nil {
-		if len(jsonObj.Aid) > 0 {
-			log.Info("inMsgHandler, handle ACK = ", jsonObj.Aid)
-			jsonObj.Cid = m.c.Cid
-			jsonObj.UserID = m.c.UserID
-			pBroker.Broadcast(cgBroadcastAck, jsonObj)
+	if m.t == clientMsg {
+		jsonObj := &ackStruct{}
+		err := jsoniter.Unmarshal(m.msg, jsonObj)
+		if err == nil {
+			if len(jsonObj.Aid) > 0 {
+				log.Info("inMsgHandler, handle ACK = ", jsonObj.Aid)
+				jsonObj.Cid = m.c.Cid
+				jsonObj.UserID = m.c.UserID
+				pBroker.Broadcast(cgBroadcastAck, jsonObj)
+			}
 			return
 		}
-	}
-
-	m.h.clients.Range(func(key, value interface{}) bool {
-		value.(*Client).send(m.msg)
-		return true
-	})
-
-	//test only
-	msgStr := string(m.msg)
-	if msgStr == "close" {
-		log.Warn("Hub Close all client on test close message")
 		m.h.clients.Range(func(key, value interface{}) bool {
-			value.(*Client).close()
+			value.(*Client).send(m.msg)
 			return true
 		})
+
+		//test only
+		msgStr := string(m.msg)
+		if msgStr == "close" {
+			log.Warn("Hub Close all client on test close message")
+			m.h.clients.Range(func(key, value interface{}) bool {
+				value.(*Client).close()
+				return true
+			})
+		}
+
 	}
+
+	if m.t == syncUsersInfo {
+		pBroker.Broadcast(cgBroadcastSyncUsersInfo, m.c)
+		return
+	}
+
 }
 
 func inMsgSchedulerMonitor(incomingReqsDiff, processedReqsDiff, diff, currentGotoutines int64) {
@@ -154,10 +184,10 @@ func (h *Hub) sendMessage(ids []string, msg []byte) {
 
 func (h *Hub) handleClientMessage(client *Client, msgType int, msg []byte) {
 	h.inMsgHandlerPool.Add(&inMsg{
-		h:       h,
-		c:       client,
-		msgType: msgType,
-		msg:     msg,
+		h:   h,
+		c:   client,
+		t:   clientMsg,
+		msg: msg,
 	})
 }
 
@@ -230,9 +260,11 @@ func (h *Hub) register(c *Client) {
 func (h *Hub) unregister(c *Client) {
 	h.unregisterChan <- c
 	log.Info("Hub unregister: client = ", c)
+	c.DisconnectTime = strconv.Itoa(int(time.Now().UnixNano() / 1e6))
 	pBroker.Broadcast(cgBroadcastUserOffline, c)
 }
 
+//call ws-connector.count
 func (h *Hub) count() int {
 	count := 0
 	h.clients.Range(func(key, value interface{}) bool {
@@ -242,6 +274,7 @@ func (h *Hub) count() int {
 	return count
 }
 
+//emit ws-connector.in.kickClient --cid uaaa_web3
 func (h *Hub) kickClient(cid string) {
 	log.Info("Hub kickClient: cid = ", cid)
 	if oldClient, ok := h.clients.Load(cid); ok {
@@ -249,6 +282,7 @@ func (h *Hub) kickClient(cid string) {
 	}
 }
 
+//emit ws-connector.in.kickUser --userID uaaa
 func (h *Hub) kickUser(userID string) {
 	log.Info("Hub kickUser: userID = ", userID)
 	if userID2Cids, ok := h.userID2Cids.Load(userID); ok {
@@ -272,4 +306,26 @@ func (h *Hub) getUserOnlineInfo(userID string) ([]*Client, error) {
 		return clientInfo, nil
 	}
 	return nil, errors.New("Cant find userID: " + userID)
+}
+
+//emit ws-connector.in.syncUsersInfo
+func (h *Hub) syncUsersInfo() {
+	log.Info("Hub syncUsersInfo")
+	go func() {
+		if atomic.CompareAndSwapInt32(&h.isDoingSyncUsersInfo, 0, 1) {
+			h.clients.Range(func(key, value interface{}) bool {
+				client := value.(*Client)
+				h.inMsgHandlerPool.Add(&inMsg{
+					h: h,
+					c: client,
+					t: syncUsersInfo,
+				})
+				time.Sleep(time.Millisecond * 1) //Do not send too fast
+				return true
+			})
+			atomic.StoreInt32(&h.isDoingSyncUsersInfo, 0)
+		} else {
+			log.Warn("Hub syncUsersInfo already running")
+		}
+	}()
 }

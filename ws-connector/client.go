@@ -6,6 +6,7 @@ package main
 
 import (
 	"bytes"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -24,12 +25,14 @@ var upgrader = websocket.Upgrader{
 
 // Client is a middleman between the websocket connection and the hub.
 type Client struct {
-	Cid       string `json:"cid"`
-	UserID    string `json:"userID"`
-	Platform  string `json:"platform"`
-	Version   string `json:"version"`
-	Timestamp string `json:"timestamp"`
-	Token     string `json:"token"`
+	Cid            string `json:"cid"`
+	UserID         string `json:"userID"`
+	Platform       string `json:"platform"`
+	Version        string `json:"version"`
+	Timestamp      string `json:"timestamp"`
+	Token          string `json:"token"`
+	ConnectTime    string `json:"connectTime"`
+	DisconnectTime string `json:"disconnectTime"`
 
 	hub *Hub
 
@@ -38,6 +41,7 @@ type Client struct {
 
 	// Buffered channel of outbound messages.
 	sendChan chan []byte
+	sendMu   sync.Mutex
 
 	sendPongChan chan int
 
@@ -58,8 +62,10 @@ func (c *Client) kick() {
 		return //already closed
 	}
 	log.Printf("client[%s] kick:", c.Cid)
+	c.sendMu.Lock()
 	c.conn.SetWriteDeadline(time.Now().Add(time.Second * 3))
-	c.conn.WriteMessage(websocket.TextMessage, []byte("Kicked"))
+	c.conn.WriteMessage(websocket.TextMessage, []byte("kicked"))
+	c.sendMu.Unlock()
 	c.close()
 }
 
@@ -69,8 +75,10 @@ func (c *Client) close() {
 	}
 	atomic.AddInt32(&c.closed, 1)
 	log.Printf("client[%s] close start", c.Cid)
+	c.sendMu.Lock()
 	c.conn.SetWriteDeadline(time.Now().Add(time.Second * 3))
 	c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+	c.sendMu.Unlock()
 	close(c.sendChan)
 	close(c.sendPongChan)
 	c.conn.Close()
@@ -135,13 +143,16 @@ func (c *Client) writePump() {
 		}
 		select {
 		case message, ok := <-c.sendChan:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+
 			if !ok {
 				log.Warnf("client[%s] exit writePump, c.sendChan was closed\n", c.Cid)
 				return
 			}
 
+			c.sendMu.Lock()
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			err := c.conn.WriteMessage(websocket.TextMessage, message)
+			c.sendMu.Unlock()
 			if err != nil {
 				log.Warnf("client[%s] exit writePump, WriteMessage error = %v\n", c.Cid, err)
 				return
@@ -153,16 +164,21 @@ func (c *Client) writePump() {
 				return
 			}
 
+			c.sendMu.Lock()
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			err := c.conn.WriteMessage(websocket.PongMessage, []byte{})
+			c.sendMu.Unlock()
 			if err != nil {
 				log.Warnf("client[%s] exit writePump, sendPong error = %v\n", c.Cid, err)
 				return
 			}
 
 		case <-ticker.C:
+			c.sendMu.Lock()
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := c.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+			err := c.conn.WriteMessage(websocket.PingMessage, []byte{})
+			c.sendMu.Unlock()
+			if err != nil {
 				log.Warnf("client[%s] exit writePump, Write PingMessage error = %v\n", c.Cid, err)
 				return
 			}
