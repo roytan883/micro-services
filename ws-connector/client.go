@@ -65,12 +65,12 @@ func (c *Client) send(data interface{}) {
 		return //already closed
 	}
 	if byteData, ok := data.([]byte); ok {
-		log.Info("client send []byte:", string(byteData))
+		log.Infof("client[%s] send []byte: %s\n", c.Cid, string(byteData))
 		c.sendChan <- byteData
 		return
 	}
 	if byteData, ok := data.(string); ok {
-		log.Info("client send string:", byteData)
+		log.Infof("client[%s] send string: %s\n", c.Cid, byteData)
 		c.sendChan <- []byte(byteData)
 		return
 	}
@@ -78,7 +78,7 @@ func (c *Client) send(data interface{}) {
 		log.Infof("client[%s] send Marshal []byte: %s\n", c.Cid, string(byteData))
 		c.sendChan <- byteData
 	} else {
-		log.Info("client send Marshal data err:", err)
+		log.Infof("client[%s] send Marshal data err:", c.Cid, err)
 		log.Infof("client[%s] send Marshal data err\n", c.Cid)
 	}
 }

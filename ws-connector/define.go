@@ -45,6 +45,7 @@ const (
 	cgBroadcastUserOffline   = AppName + ".out.userOffline"
 	cgBroadcastAck           = AppName + ".out.ack"
 	cgBroadcastSyncUsersInfo = AppName + ".out.syncUsersInfo"
+	cgVerifyToken            = "ws-token.verify"
 )
 
 type ackStruct struct {
@@ -69,4 +70,16 @@ type kickUserStruct struct {
 
 type getUserOnlineInfoStruct struct {
 	UserID string `json:"userID"`
+}
+
+type verifyTokenStruct struct {
+	UserID    string `json:"userID"`
+	Platform  string `json:"platform"`
+	Version   string `json:"version"`
+	Timestamp string `json:"timestamp"`
+	Token     string `json:"token"`
+}
+
+type verifyTokenResultStruct struct {
+	Invalid bool `json:"invalid"` //GO default bool is false, so use invalid == true to detect invalid token
 }

@@ -137,8 +137,9 @@ func main() {
 
 	//init service and broker
 	config := &moleculer.ServiceBrokerConfig{
-		NatsHost: gNatsHosts,
-		NodeID:   gNodeID,
+		NatsHost:              gNatsHosts,
+		NodeID:                gNodeID,
+		DefaultRequestTimeout: time.Second * 2,
 		// LogLevel: moleculer.DebugLevel,
 		LogLevel: moleculer.ErrorLevel,
 		Services: make(map[string]moleculer.Service),

@@ -279,14 +279,42 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	encodeString := userID + platform + version + timestamp + sha256salt
-	genToken := genSha1String(encodeString)
+	//only if ws-token.verify return invalid == true to reject client
+	//request timeout or error , default let it pass
 
-	if token != genToken {
-		w.WriteHeader(403)
-		w.Write([]byte("token is not valid"))
-		return
+	// res, err := pBroker.Call("pushConnector.verify", &verifyTokenStruct{
+	res, err := pBroker.Call(cgVerifyToken, &verifyTokenStruct{
+		UserID:    userID,
+		Platform:  platform,
+		Version:   version,
+		Timestamp: timestamp,
+		Token:     token,
+	}, nil)
+	if err == nil {
+		jsonByte, err := jsoniter.Marshal(res)
+		if err == nil {
+			jsonObj := &verifyTokenResultStruct{}
+			err := jsoniter.Unmarshal(jsonByte, jsonObj)
+			if err == nil {
+				if jsonObj.Invalid {
+					w.WriteHeader(403)
+					w.Write([]byte("token is not valid"))
+					return
+				}
+			}
+		}
+	} else {
+		log.Warn("RPC ws-token.verify err: ", err)
+		log.Warn("RPC ws-token.verify err, default allow client connection: ", userID+"_"+platform)
 	}
+
+	// encodeString := userID + platform + version + timestamp + sha256salt
+	// genToken := genSha1String(encodeString)
+	// if token != genToken {
+	// 	w.WriteHeader(403)
+	// 	w.Write([]byte("token is not valid"))
+	// 	return
+	// }
 
 	//TODO: just parse id and platform from token, validate token, return fail
 
