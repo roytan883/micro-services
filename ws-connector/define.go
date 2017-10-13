@@ -3,8 +3,8 @@ package main
 import (
 	"time"
 
-	logrus "github.com/Sirupsen/logrus"
 	moleculer "github.com/roytan883/moleculer-go"
+	logrus "github.com/sirupsen/logrus"
 )
 
 var log *logrus.Logger

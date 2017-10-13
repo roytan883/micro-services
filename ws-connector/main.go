@@ -2,14 +2,16 @@ package main
 
 import (
 	"flag"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	logrus "github.com/Sirupsen/logrus"
+	rotatelogs "github.com/lestrrat/go-file-rotatelogs"
 	nats "github.com/nats-io/go-nats"
+	"github.com/rifflock/lfshook"
 	moleculer "github.com/roytan883/moleculer-go"
-
+	logrus "github.com/sirupsen/logrus"
 	"github.com/xlab/closer"
 )
 
@@ -18,6 +20,8 @@ const (
 	AppName = "ws-connector"
 	//ServiceName ...
 	ServiceName = AppName
+	//IsDebug change logLevel here for dev and pro
+	IsDebug = true
 )
 
 func init() {
@@ -31,8 +35,60 @@ func initLog() {
 		TimestampFormat: "01-02 15:04:05.000000",
 	}
 	log.WithFields(logrus.Fields{"package": AppName})
-	// log.SetLevel(logrus.DebugLevel)
-	log.SetLevel(logrus.WarnLevel)
+
+	os.Mkdir("logs", os.ModePerm)
+	if IsDebug {
+		log.SetLevel(logrus.DebugLevel)
+		debugLogPath := "logs/debug.log"
+		warnLogPath := "logs/warn.log"
+		debugLogWriter, err := rotatelogs.New(
+			debugLogPath+".%Y%m%d%H%M%S",
+			rotatelogs.WithLinkName(debugLogPath),
+			rotatelogs.WithMaxAge(time.Hour*24*7),
+			rotatelogs.WithRotationTime(time.Hour*24),
+		)
+		if err != nil {
+			log.Printf("failed to create rotatelogs debugLogWriter : %s", err)
+			return
+		}
+		warnLogWriter, err := rotatelogs.New(
+			warnLogPath+".%Y%m%d%H%M%S",
+			rotatelogs.WithLinkName(warnLogPath),
+			rotatelogs.WithMaxAge(time.Hour*24*7),
+			rotatelogs.WithRotationTime(time.Hour*24),
+		)
+		if err != nil {
+			log.Printf("failed to create rotatelogs warnLogWriter : %s", err)
+			return
+		}
+		log.Hooks.Add(lfshook.NewHook(lfshook.WriterMap{
+			logrus.DebugLevel: debugLogWriter,
+			logrus.InfoLevel:  debugLogWriter,
+			logrus.WarnLevel:  warnLogWriter,
+			logrus.ErrorLevel: warnLogWriter,
+			logrus.FatalLevel: warnLogWriter,
+			logrus.PanicLevel: warnLogWriter,
+		}))
+	} else {
+		log.SetLevel(logrus.WarnLevel)
+		warnLogPath := "logs/warn.log"
+		warnLogWriter, err := rotatelogs.New(
+			warnLogPath+".%Y%m%d%H%M%S",
+			rotatelogs.WithLinkName(warnLogPath),
+			rotatelogs.WithMaxAge(time.Hour*24*7),
+			rotatelogs.WithRotationTime(time.Hour*24),
+		)
+		if err != nil {
+			log.Printf("failed to create rotatelogs warnLogWriter : %s", err)
+			return
+		}
+		log.Hooks.Add(lfshook.NewHook(lfshook.WriterMap{
+			logrus.WarnLevel:  warnLogWriter,
+			logrus.ErrorLevel: warnLogWriter,
+			logrus.FatalLevel: warnLogWriter,
+			logrus.PanicLevel: warnLogWriter,
+		}))
+	}
 }
 
 //TLS:
@@ -49,6 +105,7 @@ func usage() {
 
 //debug: go run .\main.go .\ws-connector.go
 func main() {
+
 	closer.Bind(cleanupFunc)
 	log.Infof("Start %s ...\n", AppName)
 
@@ -96,6 +153,7 @@ func main() {
 	startWsService()
 
 	log.Warn("================= Server Started ================= ")
+	log.Error("================= Error test ================= ")
 	demoWsString := "you can connect to the server by weboscket >>> wss://x.x.x.x:" + strconv.Itoa(gPort) + "/ws?userID=uaaa&platform=web&version=0.1.0&timestamp=1507870585757&token=73ce0b2d7b47b4af75f38dcabf8e3ce9894e6e6e"
 	log.Warn(demoWsString)
 

@@ -6,9 +6,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	logrus "github.com/Sirupsen/logrus"
 	nats "github.com/nats-io/go-nats"
 	moleculer "github.com/roytan883/moleculer-go"
+	logrus "github.com/sirupsen/logrus"
 
 	"github.com/xlab/closer"
 )
