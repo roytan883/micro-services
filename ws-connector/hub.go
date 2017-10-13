@@ -253,14 +253,14 @@ func (h *Hub) register(c *Client) {
 		oldClient.(*Client).kick()
 	}
 	h.registerChan <- c
-	log.Info("Hub register: client = ", c)
+	log.Warn("Hub register <<< client = ", c.String())
 	pBroker.Broadcast(cgBroadcastUserOnline, c)
 }
 
 func (h *Hub) unregister(c *Client) {
 	h.unregisterChan <- c
-	log.Info("Hub unregister: client = ", c)
 	c.DisconnectTime = strconv.Itoa(int(time.Now().UnixNano() / 1e6))
+	log.Warn("Hub unregister ### client = ", c.String())
 	pBroker.Broadcast(cgBroadcastUserOffline, c)
 }
 

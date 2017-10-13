@@ -50,6 +50,14 @@ type Client struct {
 	closed int32
 }
 
+func (c *Client) String() string {
+	data, err := jsoniter.Marshal(c)
+	if err != nil {
+		return ""
+	}
+	return string(data)
+}
+
 func (c *Client) send(data interface{}) {
 	// log.Printf("client[%s] send data: %v\n", c.Cid, data)
 	if atomic.LoadInt32(&c.closed) > 0 {
@@ -118,12 +126,12 @@ func (c *Client) readPump() {
 	})
 	for {
 		if atomic.LoadInt32(&c.closed) > 0 {
-			log.Warnf("client[%s] exit readPump, c.closed already set\n", c.Cid)
+			log.Infof("client[%s] exit readPump, c.closed already set\n", c.Cid)
 			return //already closed
 		}
 		msgType, message, err := c.conn.ReadMessage()
 		if err != nil {
-			log.Warnf("client[%s] exit readPump, ReadMessage error: %v", c.Cid, err)
+			log.Infof("client[%s] exit readPump, ReadMessage error: %v", c.Cid, err)
 			return
 		}
 		if msgType == websocket.TextMessage {
@@ -146,14 +154,14 @@ func (c *Client) writePump() {
 	}()
 	for {
 		if atomic.LoadInt32(&c.closed) > 0 {
-			log.Warnf("client[%s] exit writePump, c.closed already set\n", c.Cid)
+			log.Infof("client[%s] exit writePump, c.closed already set\n", c.Cid)
 			return //already closed
 		}
 		select {
 		case message, ok := <-c.sendChan:
 
 			if !ok {
-				log.Warnf("client[%s] exit writePump, c.sendChan was closed\n", c.Cid)
+				log.Infof("client[%s] exit writePump, c.sendChan was closed\n", c.Cid)
 				return
 			}
 
@@ -162,13 +170,13 @@ func (c *Client) writePump() {
 			err := c.conn.WriteMessage(websocket.TextMessage, message)
 			c.sendMu.Unlock()
 			if err != nil {
-				log.Warnf("client[%s] exit writePump, WriteMessage error = %v\n", c.Cid, err)
+				log.Infof("client[%s] exit writePump, WriteMessage error = %v\n", c.Cid, err)
 				return
 			}
 
 		case _, ok := <-c.sendPongChan:
 			if !ok {
-				log.Warnf("client[%s] exit writePump, c.sendPongChan was closed\n", c.Cid)
+				log.Infof("client[%s] exit writePump, c.sendPongChan was closed\n", c.Cid)
 				return
 			}
 
@@ -177,7 +185,7 @@ func (c *Client) writePump() {
 			err := c.conn.WriteMessage(websocket.PongMessage, []byte{})
 			c.sendMu.Unlock()
 			if err != nil {
-				log.Warnf("client[%s] exit writePump, sendPong error = %v\n", c.Cid, err)
+				log.Infof("client[%s] exit writePump, sendPong error = %v\n", c.Cid, err)
 				return
 			}
 
@@ -187,7 +195,7 @@ func (c *Client) writePump() {
 			err := c.conn.WriteMessage(websocket.PingMessage, []byte{})
 			c.sendMu.Unlock()
 			if err != nil {
-				log.Warnf("client[%s] exit writePump, Write PingMessage error = %v\n", c.Cid, err)
+				log.Infof("client[%s] exit writePump, Write PingMessage error = %v\n", c.Cid, err)
 				return
 			}
 		}

@@ -31,6 +31,8 @@ func initLog() {
 		TimestampFormat: "01-02 15:04:05.000000",
 	}
 	log.WithFields(logrus.Fields{"package": AppName})
+	// log.SetLevel(logrus.DebugLevel)
+	log.SetLevel(logrus.WarnLevel)
 }
 
 //TLS:
@@ -62,13 +64,13 @@ func main() {
 	gID = *_gID
 
 	gNatsHosts = strings.Split(gUrls, ",")
-	log.Printf("gUrls : %v\n", gUrls)
-	log.Printf("gNatsHosts : %v\n", gNatsHosts)
-	log.Printf("gPort : %v\n", gPort)
-	log.Printf("gID : %v\n", gID)
+	log.Warnf("gUrls : %v\n", gUrls)
+	log.Warnf("gNatsHosts : %v\n", gNatsHosts)
+	log.Warnf("gPort : %v\n", gPort)
+	log.Warnf("gID : %v\n", gID)
 
 	gNodeID += "-" + strconv.Itoa(gID)
-	log.Printf("gNodeID : %v\n", gNodeID)
+	log.Warnf("gNodeID : %v\n", gNodeID)
 
 	//init service and broker
 	config := &moleculer.ServiceBrokerConfig{
@@ -92,6 +94,10 @@ func main() {
 	}
 
 	startWsService()
+
+	log.Warn("================= Server Started ================= ")
+	demoWsString := "you can connect to the server by weboscket >>> wss://x.x.x.x:" + strconv.Itoa(gPort) + "/ws?userID=uaaa&platform=web&version=0.1.0&timestamp=1507870585757&token=73ce0b2d7b47b4af75f38dcabf8e3ce9894e6e6e"
+	log.Warn(demoWsString)
 
 	closer.Hold()
 }
