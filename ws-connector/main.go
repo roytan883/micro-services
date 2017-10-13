@@ -20,8 +20,6 @@ const (
 	AppName = "ws-connector"
 	//ServiceName ...
 	ServiceName = AppName
-	//IsDebug change logLevel here for dev and pro
-	IsDebug = true
 )
 
 func init() {
@@ -36,8 +34,11 @@ func initLog() {
 	}
 	log.WithFields(logrus.Fields{"package": AppName})
 
+}
+
+func setDebug() {
 	os.Mkdir("logs", os.ModePerm)
-	if IsDebug {
+	if gIsDebug > 0 {
 		log.SetLevel(logrus.DebugLevel)
 		debugLogPath := "logs/debug.log"
 		warnLogPath := "logs/warn.log"
@@ -100,25 +101,29 @@ func initLog() {
 // ws-connector -s nats://192.168.1.69:12008
 // ws-connector -s nats://127.0.0.1:4222
 func usage() {
-	log.Fatalf("Usage: ws-connector [-s server (%s)] [-p port (12020)] [-i nodeID (0)] \n", nats.DefaultURL)
+	log.Fatalf("Usage: ws-connector [-s server (%s)] [-p port (12020)] [-i nodeID (0)] [-d debug (0)] \n", nats.DefaultURL)
 }
 
 //debug: go run .\main.go .\ws-connector.go
 func main() {
-
 	closer.Bind(cleanupFunc)
-	log.Infof("Start %s ...\n", AppName)
 
 	//get NATS server host
 	_gUrls := flag.String("s", nats.DefaultURL, "The nats server URLs (separated by comma, default localhost:4222)")
 	_gPort := flag.Int("p", 12020, "listen websocket port")
 	_gID := flag.Int("i", 0, "ID of the service on this machine")
+	_gIsDebug := flag.Int("d", 0, "is debug")
 	flag.Usage = usage
 	flag.Parse()
 
 	gUrls = *_gUrls
 	gPort = *_gPort
 	gID = *_gID
+	gIsDebug = *_gIsDebug
+
+	setDebug()
+
+	log.Infof("Start %s ...\n", AppName)
 
 	gNatsHosts = strings.Split(gUrls, ",")
 	log.Warnf("gUrls : %v\n", gUrls)

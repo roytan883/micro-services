@@ -64,8 +64,18 @@ func (c *Client) send(data interface{}) {
 		log.Warnf("client[%s] already closed, can't send\n", c.Cid)
 		return //already closed
 	}
+	if byteData, ok := data.([]byte); ok {
+		log.Info("client send []byte:", string(byteData))
+		c.sendChan <- byteData
+		return
+	}
+	if byteData, ok := data.(string); ok {
+		log.Info("client send string:", byteData)
+		c.sendChan <- []byte(byteData)
+		return
+	}
 	if byteData, err := jsoniter.Marshal(data); err == nil {
-		log.Infof("client[%s] send: %s\n", c.Cid, string(byteData))
+		log.Infof("client[%s] send Marshal []byte: %s\n", c.Cid, string(byteData))
 		c.sendChan <- byteData
 	} else {
 		log.Info("client send Marshal data err:", err)

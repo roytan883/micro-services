@@ -15,6 +15,7 @@ var gUrls string
 var gNatsHosts []string
 var gPort int
 var gID int
+var gIsDebug int
 var gNodeID = AppName
 
 var gHub *Hub
