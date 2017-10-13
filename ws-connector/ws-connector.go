@@ -107,10 +107,10 @@ func eventInKickUser(req *protocol.MsEvent) {
 	}
 }
 
-//mol repl: emit ws-connector.in.push --ids u1507627722361_web --data.mid aaaabbbb --data.msg hello
+//mol repl: emit ws-connector.in.push --ids uaaa_web --mid aaaabbbb --msg.a hello --msg.b 123 --msg.c true
 
 //if only userID, then push to all platfrom of userID
-//mol repl: emit ws-connector.in.push --ids u1507627722361 --data.mid aaaabbbb --data.msg hello
+//mol repl: emit ws-connector.in.push --ids uaaa --mid aaaabbbb --msg.a hello --msg.b 123 --msg.c true
 func eventInPush(req *protocol.MsEvent) {
 	log.Info("run eventInPush, req.Data = ", req.Data)
 	jsonString, err := jsoniter.Marshal(req.Data)
@@ -128,20 +128,12 @@ func eventInPush(req *protocol.MsEvent) {
 		return
 	}
 	log.Info("run eventInPush, jsonObj = ", jsonObj)
-	// log.Info("jsonObj = ", jsonObj)
-	// log.Info("jsonObj IDs = ", jsonObj.IDs)
-	// log.Info("jsonObj Data = ", jsonObj.Data)
-	data, err := jsoniter.Marshal(jsonObj.Data)
-	if err != nil {
-		log.Warn("run eventInPush, parse jsonObj.Data to data error: ", err)
-		return
-	}
 
 	// log.Info("type:", reflect.TypeOf(jsonObj.IDs))
 
 	switch jsonObj.IDs.(type) {
 	case []string:
-		gHub.sendMessage(jsonObj.IDs.([]string), data)
+		gHub.sendMessage(jsonObj.IDs.([]string), jsonObj.Msg)
 	case []interface{}:
 		ids := make([]string, 0)
 		_ids := jsonObj.IDs.([]interface{})
@@ -150,10 +142,10 @@ func eventInPush(req *protocol.MsEvent) {
 				ids = append(ids, sv)
 			}
 		}
-		gHub.sendMessage(ids, data)
+		gHub.sendMessage(ids, jsonObj.Msg)
 	case string:
 		ids := strings.Split(jsonObj.IDs.(string), ",")
-		gHub.sendMessage(ids, data)
+		gHub.sendMessage(ids, jsonObj.Msg)
 	default:
 		log.Info("can't parse  jsonObj.IDs")
 	}

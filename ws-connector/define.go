@@ -52,14 +52,10 @@ type ackStruct struct {
 	UserID string `json:"userID"`
 }
 
-type msgStruct struct {
+type pushMsgStruct struct {
+	IDs interface{} `json:"ids"`
 	Mid string      `json:"mid"`
 	Msg interface{} `json:"msg"`
-}
-
-type pushMsgStruct struct {
-	IDs  interface{} `json:"ids"`
-	Data msgStruct   `json:"data"`
 }
 
 type kickClientStruct struct {

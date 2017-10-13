@@ -127,7 +127,7 @@ func inMsgSchedulerMonitor(incomingReqsDiff, processedReqsDiff, diff, currentGot
 type outMsg struct {
 	h   *Hub
 	ids []string
-	msg []byte
+	msg interface{}
 }
 
 func outMsgHandler(data interface{}) {
@@ -169,7 +169,7 @@ func (h *Hub) close() {
 
 var gSendMessageCount uint64
 
-func (h *Hub) sendMessage(ids []string, msg []byte) {
+func (h *Hub) sendMessage(ids []string, msg interface{}) {
 	atomic.AddUint64(&gSendMessageCount, 1)
 	if atomic.LoadUint64(&gSendMessageCount)%10000 == 0 {
 		log.Info("Hub gSendMessageCount: ", gSendMessageCount)

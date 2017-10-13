@@ -10,6 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/json-iterator/go"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -48,13 +50,19 @@ type Client struct {
 	closed int32
 }
 
-func (c *Client) send(data []byte) {
+func (c *Client) send(data interface{}) {
+	// log.Printf("client[%s] send data: %v\n", c.Cid, data)
 	if atomic.LoadInt32(&c.closed) > 0 {
-		log.Warnf("client[%s] already closed, can't send: %s\n", c.Cid, string(data))
+		log.Warnf("client[%s] already closed, can't send\n", c.Cid)
 		return //already closed
 	}
-	log.Printf("client[%s] send: %s\n", c.Cid, string(data))
-	c.sendChan <- data
+	if byteData, err := jsoniter.Marshal(data); err == nil {
+		log.Infof("client[%s] send: %s\n", c.Cid, string(byteData))
+		c.sendChan <- byteData
+	} else {
+		log.Info("client send Marshal data err:", err)
+		log.Infof("client[%s] send Marshal data err\n", c.Cid)
+	}
 }
 
 func (c *Client) kick() {
