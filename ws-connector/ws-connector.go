@@ -78,8 +78,8 @@ func eventInKickClient(req *protocol.MsEvent) {
 		log.Warn("run eventInKickClient, parse req.Data to jsonObj kickClientStruct error: ", err)
 		return
 	}
-	if len(jsonObj.Cid) > 0 && len(jsonObj.UserID) > 0 {
-		gHub.kickClient(jsonObj.UserID, jsonObj.Cid)
+	if len(jsonObj.Cid) > 0 {
+		gHub.kickClient(jsonObj.Cid)
 	}
 }
 

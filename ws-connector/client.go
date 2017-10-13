@@ -64,7 +64,7 @@ func (c *Client) kick() {
 }
 
 func (c *Client) close() {
-	if atomic.LoadInt32(&c.closed) > 0 {
+	if !atomic.CompareAndSwapInt32(&c.closed, 0, 1) {
 		return //already closed
 	}
 	atomic.AddInt32(&c.closed, 1)

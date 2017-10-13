@@ -31,7 +31,8 @@ window.onload = function () {
     function NewWebSocket() {
         // var userID = "u" + Date.now()
         var userID = "u" + "aaa"
-        var platform = "web" + Math.floor(Math.random()*10+1)
+        var platform = "web"
+        // var platform = "web" + Math.floor(Math.random()*10+1)
         var version = "0.1.0"
 
         var getTokenUrl = "/gettoken?" + "userID=" + userID + "&platform=" + platform + "&version=" + version

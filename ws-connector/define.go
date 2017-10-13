@@ -61,8 +61,7 @@ type pushMsgStruct struct {
 }
 
 type kickClientStruct struct {
-	Cid    string `json:"cid"`
-	UserID string `json:"userID"`
+	Cid string `json:"cid"`
 }
 
 type kickUserStruct struct {
