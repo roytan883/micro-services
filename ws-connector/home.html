@@ -31,7 +31,7 @@ window.onload = function () {
     function ReconnectWebSocket() {
         setTimeout(() => {
             NewWebSocket()
-        }, 1000)
+        }, 3000)
     }
 
     function NewWebSocket() {
@@ -60,6 +60,7 @@ window.onload = function () {
                     // conn = new WebSocket("ws://" + document.location.host + "/ws?abc=123&def=aaa");
                     conn = new WebSocket(urlString);
                     conn.onopen = function (evt) {
+                        console.log("websocket onopen")
                         var item = document.createElement("div");
                         // item.innerHTML = "<b>Connection opened.</b>";
                         var now = new Date()
@@ -67,13 +68,15 @@ window.onload = function () {
                         appendLog(item);
                     };
                     conn.onclose = function (evt) {
-                        // var item = document.createElement("div");
+                        var item = document.createElement("div");
+                        console.log("websocket onclose")
                         var now = new Date()
                         item.innerHTML = "<b>" + now.toLocaleString() + ": Connection closed.</b>";
                         appendLog(item);
                         ReconnectWebSocket()
                     };
                     conn.onmessage = function (evt) {
+                        console.log("websocket onmessage")
                         var isJson = false
                         try {
                             var jsonObj = JSON.parse(evt.data)
