@@ -28,6 +28,12 @@ window.onload = function () {
         return false;
     };
 
+    function ReconnectWebSocket() {
+        setTimeout(() => {
+            NewWebSocket()
+        }, 1000)
+    }
+
     function NewWebSocket() {
         // var userID = "u" + Date.now()
         var userID = "u" + "aaa"
@@ -55,13 +61,17 @@ window.onload = function () {
                     conn = new WebSocket(urlString);
                     conn.onopen = function (evt) {
                         var item = document.createElement("div");
-                        item.innerHTML = "<b>Connection opened.</b>";
+                        // item.innerHTML = "<b>Connection opened.</b>";
+                        var now = new Date()
+                        item.innerHTML = "<b>" + now.toLocaleString() + ": Connection opened.</b>";
                         appendLog(item);
                     };
                     conn.onclose = function (evt) {
-                        var item = document.createElement("div");
-                        item.innerHTML = "<b>Connection closed.</b>";
+                        // var item = document.createElement("div");
+                        var now = new Date()
+                        item.innerHTML = "<b>" + now.toLocaleString() + ": Connection closed.</b>";
                         appendLog(item);
+                        ReconnectWebSocket()
                     };
                     conn.onmessage = function (evt) {
                         var isJson = false
@@ -70,7 +80,8 @@ window.onload = function () {
                             if (jsonObj.mid && jsonObj.msg) {
                                 isJson = true
                                 var item = document.createElement("div");
-                                item.innerText = jsonObj.msg;
+                                var now = new Date()
+                                item.innerText = now.toLocaleString() + ": " + jsonObj.msg;
                                 appendLog(item);
                                 conn.send(JSON.stringify({
                                     aid: jsonObj.mid
@@ -83,12 +94,16 @@ window.onload = function () {
                             var messages = evt.data.split('\n');
                             for (var i = 0; i < messages.length; i++) {
                                 var item = document.createElement("div");
-                                item.innerText = messages[i];
+                                var now = new Date()
+                                item.innerText = now.toLocaleString() + ": " + messages[i];
                                 appendLog(item);
                             }
                         }                        
                     };
                 }
+            }
+            if (xhr.readyState == 4 && xhr.status != 200) {
+                ReconnectWebSocket()
             }  
         };  
         xhr.open("GET", getTokenUrl, true);//提交get请求到服务器  
