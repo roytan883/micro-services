@@ -63,16 +63,16 @@
 			"revisionTime": "2017-09-10T02:25:31Z"
 		},
 		{
-			"checksumSHA1": "wpGGmN70cTtWu2uCxdExLyvXI34=",
+			"checksumSHA1": "A4Vnays05sskTZ1e28CmPuahMP8=",
 			"path": "github.com/roytan883/moleculer-go",
-			"revision": "ecb8fa8f67be417610dd5735d2ddd16d19b46d70",
-			"revisionTime": "2017-10-07T12:26:30Z"
+			"revision": "1e8f1e8269e5bdd5de3cc9e52651a7c176c61399",
+			"revisionTime": "2017-10-13T05:40:51Z"
 		},
 		{
 			"checksumSHA1": "lpk5VhOvrWoICHn6BJ5lWXPYd5w=",
 			"path": "github.com/roytan883/moleculer-go/protocol",
-			"revision": "ecb8fa8f67be417610dd5735d2ddd16d19b46d70",
-			"revisionTime": "2017-10-07T12:26:30Z"
+			"revision": "1e8f1e8269e5bdd5de3cc9e52651a7c176c61399",
+			"revisionTime": "2017-10-13T05:40:51Z"
 		},
 		{
 			"checksumSHA1": "BYvROBsiyAXK4sq6yhDe8RgT4LM=",
@@ -93,7 +93,7 @@
 			"revisionTime": "2017-09-30T17:45:11Z"
 		},
 		{
-			"checksumSHA1": "WZqSNXyoBt+dALtTo3S/xf3I19Q=",
+			"checksumSHA1": "ctkHmbkAolywuCZZocHn514yvXA=",
 			"path": "golang.org/x/sys/unix",
 			"revision": "ebfc5b4631820b793c9010c87fd8fef0f39eb082",
 			"revisionTime": "2017-10-06T15:06:24Z"
