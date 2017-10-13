@@ -160,7 +160,6 @@ func main() {
 	startWsService()
 
 	log.Warn("================= Server Started ================= ")
-	log.Error("================= Error test ================= ")
 	demoWsString := "you can connect to the server by weboscket >>> wss://x.x.x.x:" + strconv.Itoa(gPort) + "/ws?userID=uaaa&platform=web&version=0.1.0&timestamp=1507870585757&token=73ce0b2d7b47b4af75f38dcabf8e3ce9894e6e6e"
 	log.Warn(demoWsString)
 

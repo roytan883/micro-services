@@ -3,6 +3,7 @@ package main
 import (
 	"time"
 
+	jsoniter "github.com/json-iterator/go"
 	moleculer "github.com/roytan883/moleculer-go"
 	logrus "github.com/sirupsen/logrus"
 )
@@ -78,6 +79,14 @@ type verifyTokenStruct struct {
 	Version   string `json:"version"`
 	Timestamp string `json:"timestamp"`
 	Token     string `json:"token"`
+}
+
+func (v *verifyTokenStruct) String() string {
+	data, err := jsoniter.Marshal(v)
+	if err != nil {
+		return ""
+	}
+	return string(data)
 }
 
 type verifyTokenResultStruct struct {

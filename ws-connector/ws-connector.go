@@ -282,14 +282,15 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	//only if ws-token.verify return invalid == true to reject client
 	//request timeout or error , default let it pass
 
-	// res, err := pBroker.Call("pushConnector.verify", &verifyTokenStruct{
-	res, err := pBroker.Call(cgVerifyToken, &verifyTokenStruct{
+	verifyToken := &verifyTokenStruct{
 		UserID:    userID,
 		Platform:  platform,
 		Version:   version,
 		Timestamp: timestamp,
 		Token:     token,
-	}, nil)
+	}
+	// res, err := pBroker.Call("pushConnector.verify", verifyToken, nil)
+	res, err := pBroker.Call(cgVerifyToken, verifyToken, nil)
 	if err == nil {
 		jsonByte, err := jsoniter.Marshal(res)
 		if err == nil {
@@ -297,6 +298,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 			err := jsoniter.Unmarshal(jsonByte, jsonObj)
 			if err == nil {
 				if jsonObj.Invalid {
+					log.Warn("RPC ws-token.verify Invalid: ", verifyToken.String())
 					w.WriteHeader(403)
 					w.Write([]byte("token is not valid"))
 					return
