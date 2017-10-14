@@ -3,16 +3,16 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "VdeLHQJsiUvVWSiOP/MOsLJBu8g=",
+			"checksumSHA1": "rNGJereenlgchMueLU9iBCyQDo8=",
 			"path": "github.com/gorilla/websocket",
-			"revision": "c908dc801cef474e686e478694c8f9f32e233901",
-			"revisionTime": "2017-10-07T20:29:39Z"
+			"revision": "71fa72d4842364bc5f74185f4161e0099ea3624a",
+			"revisionTime": "2017-10-11T16:07:11Z"
 		},
 		{
-			"checksumSHA1": "Uc2U79K7amx8tmFdpfqta8y2+p8=",
+			"checksumSHA1": "H+zZYQO4Y1qcFg9ctqxnpcHB9r8=",
 			"path": "github.com/json-iterator/go",
-			"revision": "0149a5cf4a375314e767894cd8343b13804d12b4",
-			"revisionTime": "2017-10-09T00:24:51Z"
+			"revision": "6240e1e7983a85228f7fd9c3e1b6932d46ec58e2",
+			"revisionTime": "2017-10-10T00:57:02Z"
 		},
 		{
 			"checksumSHA1": "XZ96seKtoJt55YtqPL7B6fFpDiI=",
@@ -63,7 +63,7 @@
 			"revisionTime": "2017-09-10T02:25:31Z"
 		},
 		{
-			"checksumSHA1": "A4Vnays05sskTZ1e28CmPuahMP8=",
+			"checksumSHA1": "mTMbx/YPnZlokStZOlM3bnCx870=",
 			"path": "github.com/roytan883/moleculer-go",
 			"revision": "1e8f1e8269e5bdd5de3cc9e52651a7c176c61399",
 			"revisionTime": "2017-10-13T05:40:51Z"
@@ -93,16 +93,16 @@
 			"revisionTime": "2017-09-30T17:45:11Z"
 		},
 		{
-			"checksumSHA1": "ctkHmbkAolywuCZZocHn514yvXA=",
+			"checksumSHA1": "/vc89vae+AsvNTGofKHOmmGRUfU=",
 			"path": "golang.org/x/sys/unix",
-			"revision": "ebfc5b4631820b793c9010c87fd8fef0f39eb082",
-			"revisionTime": "2017-10-06T15:06:24Z"
+			"revision": "686000749eaec0b8855b8eef5336cf63899fe51d",
+			"revisionTime": "2017-10-13T11:59:59Z"
 		},
 		{
 			"checksumSHA1": "pBPFzDGt3AVSRffB7ffiUnruFUk=",
 			"path": "golang.org/x/sys/windows",
-			"revision": "ebfc5b4631820b793c9010c87fd8fef0f39eb082",
-			"revisionTime": "2017-10-06T15:06:24Z"
+			"revision": "686000749eaec0b8855b8eef5336cf63899fe51d",
+			"revisionTime": "2017-10-13T11:59:59Z"
 		}
 	],
 	"rootPath": "github.com/roytan883/micro-services"
