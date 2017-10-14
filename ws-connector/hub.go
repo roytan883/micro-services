@@ -118,12 +118,6 @@ func inMsgHandler(data interface{}) {
 
 }
 
-func inMsgSchedulerMonitor(incomingReqsDiff, processedReqsDiff, diff, currentGotoutines int64) {
-	if incomingReqsDiff != 0 || processedReqsDiff != 0 {
-		log.Printf("inMsgSchedulerMonitor: %d, %d, %d, %d\n", incomingReqsDiff, processedReqsDiff, diff, currentGotoutines)
-	}
-}
-
 type outMsg struct {
 	h   *Hub
 	ids []string
@@ -148,12 +142,6 @@ func outMsgHandler(data interface{}) {
 				return true
 			})
 		}
-	}
-}
-
-func outMsgSchedulerMonitor(incomingReqsDiff, processedReqsDiff, diff, currentGotoutines int64) {
-	if incomingReqsDiff != 0 || processedReqsDiff != 0 {
-		log.Printf("outMsgSchedulerMonitor: %d, %d, %d, %d\n", incomingReqsDiff, processedReqsDiff, diff, currentGotoutines)
 	}
 }
 
