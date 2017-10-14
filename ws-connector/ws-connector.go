@@ -283,6 +283,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	//request timeout or error , default let it pass
 
 	verifyToken := &verifyTokenStruct{
+		Url:       r.URL.String(),
 		UserID:    userID,
 		Platform:  platform,
 		Version:   version,

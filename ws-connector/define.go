@@ -74,6 +74,7 @@ type getUserOnlineInfoStruct struct {
 }
 
 type verifyTokenStruct struct {
+	Url       string `json:"url"`
 	UserID    string `json:"userID"`
 	Platform  string `json:"platform"`
 	Version   string `json:"version"`
