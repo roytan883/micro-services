@@ -356,7 +356,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 
 func startWsService() {
 	gHub = newHub()
-	go gHub.run()
+	gHub.run()
 	http.HandleFunc("/", serveHome)
 	http.HandleFunc("/gettoken", func(w http.ResponseWriter, r *http.Request) {
 		gettoken(w, r)
