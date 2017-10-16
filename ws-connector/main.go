@@ -122,7 +122,7 @@ func main() {
 	gPort = *_gPort
 	gID = *_gID
 	gRPS = *_gRPS
-	gMaxClients = int64(*_gMaxClients)
+	gMaxClients = *_gMaxClients
 	gIsDebug = *_gIsDebug
 
 	setDebug()
@@ -135,6 +135,7 @@ func main() {
 	log.Warnf("gPort : %v\n", gPort)
 	log.Warnf("gID : %v\n", gID)
 	log.Warnf("gIsDebug : %v\n", gIsDebug)
+	log.Warnf("gMaxClients : %v\n", gMaxClients)
 
 	gNodeID += "-" + strconv.Itoa(gID)
 	log.Warnf("gNodeID : %v\n", gNodeID)

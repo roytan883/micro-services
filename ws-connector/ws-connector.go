@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"sync/atomic"
 	// _ "net/http/pprof" //https://localhost:12020/debug/pprof
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/json-iterator/go"
+	"golang.org/x/net/netutil"
 
 	moleculer "github.com/roytan883/moleculer-go"
 	"github.com/roytan883/moleculer-go/protocol"
@@ -252,12 +254,12 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	defer atomic.AddInt64(&gCurrentAccepting, -1)
 	atomic.AddInt64(&gCurrentAccepting, 1)
 
-	if atomic.LoadInt64(&gCurrentClients) >= gMaxClients {
-		log.Warnf("gCurrentClients[%d] >= gMaxClients[%d], reject new client", atomic.LoadInt64(&gCurrentClients), gMaxClients)
-		w.WriteHeader(503)
-		w.Write([]byte("Service Unavailable: MaxClient"))
-		return
-	}
+	// if atomic.LoadInt64(&gCurrentClients) >= gMaxClients {
+	// 	log.Warnf("gCurrentClients[%d] >= gMaxClients[%d], reject new client", atomic.LoadInt64(&gCurrentClients), gMaxClients)
+	// 	w.WriteHeader(503)
+	// 	w.Write([]byte("Service Unavailable: MaxClient"))
+	// 	return
+	// }
 
 	//max concurrenty accept new webscoket 500
 	if atomic.LoadInt64(&gCurrentAccepting) > maxConcurrentAccept {
@@ -413,7 +415,14 @@ func startWsService() {
 
 	listenHost := ":" + strconv.Itoa(gPort)
 	go func() {
-		err := http.ListenAndServeTLS(listenHost, "cert_go.pem", "key_go.pem", nil)
+		acceptSocket, err := net.Listen("tcp", listenHost)
+		if err != nil {
+			log.Fatal("TCP Listen: ", err)
+			os.Exit(1)
+		}
+		acceptSocket = netutil.LimitListener(acceptSocket, gMaxClients)
+		err = http.ServeTLS(acceptSocket, nil, "cert_go.pem", "key_go.pem")
+		// err := http.ListenAndServeTLS(listenHost, "cert_go.pem", "key_go.pem", nil)
 		if err != nil {
 			log.Fatal("exit process, http ListenAndServe err: ", err)
 			os.Exit(1)

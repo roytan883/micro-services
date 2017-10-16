@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"time"
 
 	"github.com/gorilla/websocket"
 	jsoniter "github.com/json-iterator/go"
@@ -20,9 +21,15 @@ func NewWsClient(name string, url string) *WsClient {
 	}
 	log.Info("NewWsClient name = ", name)
 	log.Info("NewWsClient url = ", url)
-	wsDialer := websocket.DefaultDialer
-	wsDialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	// wsDialer := websocket.DefaultDialer
+	wsDialer := &websocket.Dialer{
+		TLSClientConfig:  &tls.Config{InsecureSkipVerify: true},
+		HandshakeTimeout: time.Second * 1,
+	}
+	// wsDialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	conn, _, err := wsDialer.Dial(url, nil)
+	// log.Info("NewWsClient r = ", r)
+	// log.Info("NewWsClient err = ", err)
 	c.conn = conn
 	if err != nil {
 		log.Errorf("WsClient [%s] dial err: ", name, err)

@@ -17,7 +17,7 @@ var gNatsHosts []string
 var gPort int
 var gID int
 var gRPS int
-var gMaxClients int64
+var gMaxClients int
 var gIsDebug int
 var gNodeID = AppName
 
