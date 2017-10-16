@@ -17,6 +17,7 @@ var gNatsHosts []string
 var gPort int
 var gID int
 var gRPS int
+var gMaxClients int64
 var gIsDebug int
 var gNodeID = AppName
 
@@ -45,10 +46,12 @@ const (
 	cgListenKickClient       = AppName + ".in.kickClient"
 	cgListenKickUser         = AppName + ".in.kickUser"
 	cgListeSyncUsersInfo     = AppName + ".in.syncUsersInfo"
+	cgListeSyncMetrics       = AppName + ".in.syncMetrics"
 	cgBroadcastUserOnline    = AppName + ".out.userOnline"
 	cgBroadcastUserOffline   = AppName + ".out.userOffline"
 	cgBroadcastAck           = AppName + ".out.ack"
 	cgBroadcastSyncUsersInfo = AppName + ".out.syncUsersInfo"
+	cgBroadcastSyncMetrics   = AppName + ".out.syncMetrics"
 	cgVerifyToken            = "ws-token.verify"
 )
 
@@ -81,7 +84,7 @@ type getUserOnlineInfoStruct struct {
 }
 
 type verifyTokenStruct struct {
-	Url       string `json:"url"`
+	URL       string `json:"url"`
 	UserID    string `json:"userID"`
 	Platform  string `json:"platform"`
 	Version   string `json:"version"`
@@ -102,6 +105,8 @@ type verifyTokenResultStruct struct {
 }
 
 type metricsStruct struct {
+	NodeID           string `json:"nodeID"`
+	Port             int    `json:"port"`
 	OnlineUsers      uint64 `json:"onlineUsers"`
 	TotalTrySend     uint64 `json:"totalTrySend"`
 	TotalSend        uint64 `json:"totalSend"`
@@ -115,3 +120,4 @@ var gTotalSend uint64
 var gTotalTryAck uint64
 var gTotalAck uint64
 var gCurrentAccepting int64
+var gCurrentClients int64

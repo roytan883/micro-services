@@ -38,6 +38,7 @@ func createMoleculerService() moleculer.Service {
 	gMoleculerService.Events[cgListenKickUser] = eventInKickUser
 	gMoleculerService.Events[cgListenPush] = eventInPush
 	gMoleculerService.Events[cgListeSyncUsersInfo] = eventInSyncUsersInfo
+	gMoleculerService.Events[cgListeSyncMetrics] = eventInSyncMetrics
 
 	return *gMoleculerService
 }
@@ -54,6 +55,13 @@ func actionMetrics(req *protocol.MsRequest) (interface{}, error) {
 	metrics := gHub.metrics()
 	log.Info("run actionMetrics, metrics: ", metrics)
 	return metrics, nil
+}
+
+func eventInSyncMetrics(req *protocol.MsEvent) {
+	log.Info("run eventInSyncMetrics")
+	metrics := gHub.metrics()
+	log.Info("run eventInSyncMetrics, metrics: ", metrics)
+	pBroker.Broadcast(cgBroadcastSyncMetrics, metrics)
 }
 
 func actionGetUserOnlineInfo(req *protocol.MsRequest) (interface{}, error) {
@@ -244,11 +252,18 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	defer atomic.AddInt64(&gCurrentAccepting, -1)
 	atomic.AddInt64(&gCurrentAccepting, 1)
 
+	if atomic.LoadInt64(&gCurrentClients) >= gMaxClients {
+		log.Warnf("gCurrentClients[%d] >= gMaxClients[%d], reject new client", atomic.LoadInt64(&gCurrentClients), gMaxClients)
+		w.WriteHeader(503)
+		w.Write([]byte("Service Unavailable: MaxClient"))
+		return
+	}
+
 	//max concurrenty accept new webscoket 500
 	if atomic.LoadInt64(&gCurrentAccepting) > maxConcurrentAccept {
 		log.Warn("Too Busy: gCurrentAccepting = ", gCurrentAccepting)
 		w.WriteHeader(503)
-		w.Write([]byte("Service Unavailable"))
+		w.Write([]byte("Service Unavailable: Busy"))
 		return
 	}
 
@@ -301,7 +316,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	//request timeout or error , default let it pass
 
 	verifyToken := &verifyTokenStruct{
-		Url:       r.URL.String(),
+		URL:       r.URL.String(),
 		UserID:    userID,
 		Platform:  platform,
 		Version:   version,

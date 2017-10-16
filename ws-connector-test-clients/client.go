@@ -35,6 +35,10 @@ func NewWsClient(name string, url string) *WsClient {
 func (c *WsClient) run() {
 	go func() {
 		defer c.Close()
+		c.conn.SetCloseHandler(func(code int, text string) error {
+			log.Infof("WsClient [%s] CloseHandler: code[%d] text[%s]", c.name, code, text)
+			return nil
+		})
 		for {
 			_, message, err := c.conn.ReadMessage()
 			if err != nil {

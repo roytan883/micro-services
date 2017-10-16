@@ -155,20 +155,19 @@ func outMsgHandler(data interface{}) {
 		return
 	}
 
-	atomic.AddUint64(&gTotalSend, 1)
-
 	// log.Infof("Hub outMsgHandler from client[%s] msgType[%d] msg: %s\n", m.c.Cid, m.msgType, m.msg)
 	for _, clientID := range m.ids {
 		// log.Infof("Hub outMsgHandler to client[%s]\n", clientID)
 		if client, ok := m.h.clients.Load(clientID); ok {
 			if clientObj, ok := client.(*Client); ok {
+				atomic.AddUint64(&gTotalSend, 1)
 				clientObj.send(m.msg)
 			}
-
 		}
 		if userID2Cids, ok := m.h.userID2Cids.Load(clientID); ok {
 			userID2Cids.(*sync.Map).Range(func(key, value interface{}) bool {
 				if clientObj, ok := value.(*Client); ok {
+					atomic.AddUint64(&gTotalSend, 1)
 					clientObj.send(m.msg)
 				}
 				return true
@@ -240,6 +239,8 @@ func (h *Hub) run() {
 			case client := <-h.registerChan:
 				log.Warn("Hub register <<< client = ", client.String())
 
+				atomic.AddInt64(&gCurrentClients, 1)
+
 				//userID_platform save
 				h.clients.Store(client.Cid, client)
 
@@ -259,6 +260,8 @@ func (h *Hub) run() {
 				})
 			case client := <-h.unregisterChan:
 				log.Warn("Hub unregister ### client = ", client.String())
+
+				atomic.AddInt64(&gCurrentClients, -1)
 
 				h.clients.Delete(client.Cid)
 				userID2Cids, ok := h.userID2Cids.Load(client.UserID)
@@ -301,8 +304,8 @@ func (h *Hub) register(c *Client) {
 }
 
 func (h *Hub) unregister(c *Client) {
-	h.unregisterChan <- c
 	c.DisconnectTime = strconv.Itoa(int(time.Now().UnixNano() / 1e6))
+	h.unregisterChan <- c
 }
 
 //call ws-connector.count
@@ -330,6 +333,8 @@ func (h *Hub) metrics() interface{} {
 		count++
 		return true
 	})
+	metrics.NodeID = gNodeID
+	metrics.Port = gPort
 	metrics.OnlineUsers = count
 	metrics.TotalTrySend = atomic.LoadUint64(&gTotalTrySend)
 	metrics.TotalSend = atomic.LoadUint64(&gTotalSend)
