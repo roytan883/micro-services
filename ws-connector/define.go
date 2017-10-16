@@ -56,7 +56,11 @@ type ackStruct struct {
 }
 
 type pushMsgStruct struct {
-	IDs interface{} `json:"ids"`
+	IDs  interface{} `json:"ids"`
+	Data interface{} `json:"data"`
+}
+
+type pushMsgDataStruct struct {
 	Mid string      `json:"mid"`
 	Msg interface{} `json:"msg"`
 }

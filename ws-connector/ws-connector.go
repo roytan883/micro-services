@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	_ "net/http/pprof"
+	// _ "net/http/pprof" //https://localhost:12020/debug/pprof
 	"os"
 	"runtime/pprof"
 	"strconv"
@@ -107,10 +107,9 @@ func eventInKickUser(req *protocol.MsEvent) {
 	}
 }
 
-//mol repl: emit ws-connector.in.push --ids uaaa_web --mid aaaabbbb --msg.a hello --msg.b 123 --msg.c true
-
 //if only userID, then push to all platfrom of userID
-//mol repl: emit ws-connector.in.push --ids uaaa --mid aaaabbbb --msg.a hello --msg.b 123 --msg.c true
+//mol repl:
+//emit ws-connector.in.push --ids utest-0 --Data.mid aaaabbbb --Data.msg.a hello --Data.msg.b 123 --Data.msg.c true
 func eventInPush(req *protocol.MsEvent) {
 	log.Info("run eventInPush, req.Data = ", req.Data)
 	jsonString, err := jsoniter.Marshal(req.Data)
@@ -133,7 +132,7 @@ func eventInPush(req *protocol.MsEvent) {
 
 	switch jsonObj.IDs.(type) {
 	case []string:
-		gHub.sendMessage(jsonObj.IDs.([]string), jsonObj.Msg)
+		gHub.sendMessage(jsonObj.IDs.([]string), jsonObj.Data)
 	case []interface{}:
 		ids := make([]string, 0)
 		_ids := jsonObj.IDs.([]interface{})
@@ -142,10 +141,10 @@ func eventInPush(req *protocol.MsEvent) {
 				ids = append(ids, sv)
 			}
 		}
-		gHub.sendMessage(ids, jsonObj.Msg)
+		gHub.sendMessage(ids, jsonObj.Data)
 	case string:
 		ids := strings.Split(jsonObj.IDs.(string), ",")
-		gHub.sendMessage(ids, jsonObj.Msg)
+		gHub.sendMessage(ids, jsonObj.Data)
 	default:
 		log.Info("can't parse  jsonObj.IDs")
 	}
@@ -358,23 +357,26 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 func startWsService() {
 	gHub = newHub()
 	gHub.run()
-	http.HandleFunc("/", serveHome)
-	http.HandleFunc("/gettoken", func(w http.ResponseWriter, r *http.Request) {
-		gettoken(w, r)
-	})
+	// http.HandleFunc("/", serveHome)
+	// http.HandleFunc("/gettoken", func(w http.ResponseWriter, r *http.Request) {
+	// 	gettoken(w, r)
+	// })
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		serveWs(gHub, w, r)
 	})
-	http.HandleFunc("/dumpmem", func(w http.ResponseWriter, r *http.Request) {
-		fm, err := os.OpenFile("./mem.out"+time.Now().Format("-15-04-05"), os.O_RDWR|os.O_CREATE, 0644)
-		if err != nil {
-			log.Fatal(err)
-		}
-		pprof.WriteHeapProfile(fm)
-		fm.Close()
-		w.WriteHeader(200)
-		w.Write([]byte("OK"))
-	})
+	if gIsDebug > 0 {
+		http.HandleFunc("/dumpmem", func(w http.ResponseWriter, r *http.Request) {
+			fm, err := os.OpenFile("./mem.out"+time.Now().Format("-15-04-05"), os.O_RDWR|os.O_CREATE, 0644)
+			if err != nil {
+				log.Fatal(err)
+			}
+			pprof.WriteHeapProfile(fm)
+			fm.Close()
+			w.WriteHeader(200)
+			w.Write([]byte("OK"))
+		})
+	}
+
 	listenHost := ":" + strconv.Itoa(gPort)
 	go func() {
 		err := http.ListenAndServeTLS(listenHost, "cert_go.pem", "key_go.pem", nil)
@@ -389,14 +391,4 @@ func stopWsService() {
 	if gHub != nil {
 		gHub.close()
 	}
-}
-
-func push(req *protocol.MsRequest) (interface{}, error) {
-	log.Info("run action push, req.Params = ", req.Params)
-	data := map[string]interface{}{
-		"res1": "AAA",
-		"res2": 123,
-	}
-	return data, nil
-	// return nil, errors.New("test return error in push")
 }

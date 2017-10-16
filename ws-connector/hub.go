@@ -94,20 +94,20 @@ func inMsgHandler(data interface{}) {
 			}
 			return
 		}
-		m.h.clients.Range(func(key, value interface{}) bool {
-			value.(*Client).send(m.msg)
-			return true
-		})
+		// m.h.clients.Range(func(key, value interface{}) bool {
+		// 	value.(*Client).send(m.msg)
+		// 	return true
+		// })
 
-		//test only
-		msgStr := string(m.msg)
-		if msgStr == "close" {
-			log.Warn("Hub Close all client on test close message")
-			m.h.clients.Range(func(key, value interface{}) bool {
-				value.(*Client).close()
-				return true
-			})
-		}
+		// //test only
+		// msgStr := string(m.msg)
+		// if msgStr == "close" {
+		// 	log.Warn("Hub Close all client on test close message")
+		// 	m.h.clients.Range(func(key, value interface{}) bool {
+		// 		value.(*Client).close()
+		// 		return true
+		// 	})
+		// }
 
 	}
 
@@ -254,12 +254,19 @@ func (h *Hub) unregister(c *Client) {
 
 //call ws-connector.count
 func (h *Hub) count() int {
-	count := 0
+	count1 := 0
 	h.clients.Range(func(key, value interface{}) bool {
-		count++
+		count1++
 		return true
 	})
-	return count
+	count2 := 0
+	h.userID2Cids.Range(func(key, value interface{}) bool {
+		count2++
+		return true
+	})
+	log.Warn("Hub count clients: ", count1)
+	log.Warn("Hub count userID2Cids: ", count2)
+	return count1
 }
 
 //emit ws-connector.in.kickClient --cid uaaa_web3
