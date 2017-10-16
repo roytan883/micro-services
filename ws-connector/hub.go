@@ -17,8 +17,8 @@ import (
 // Hub maintains the set of active clients
 type Hub struct {
 	// Registered clients.
-	clients     sync.Map //~= sync.Map[string(Cid)]*Client
-	userID2Cids sync.Map //~= sync.Map[string(UserID)]*sync.Map[string(Cid)]*Client
+	clients     *sync.Map //~= sync.Map[string(Cid)]*Client
+	userID2Cids *sync.Map //~= sync.Map[string(UserID)]*sync.Map[string(Cid)]*Client
 
 	// Register requests from the clients.
 	registerChan chan *Client
@@ -36,6 +36,8 @@ type Hub struct {
 
 func newHub() *Hub {
 	hub := &Hub{
+		clients:        &sync.Map{},
+		userID2Cids:    &sync.Map{},
 		hubClosed:      make(chan int, 10),
 		registerChan:   make(chan *Client, 2500),
 		unregisterChan: make(chan *Client, 2500),
