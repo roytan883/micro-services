@@ -29,6 +29,7 @@ func createMoleculerService() moleculer.Service {
 
 	//init actions handlers
 	gMoleculerService.Actions["count"] = actionCount
+	gMoleculerService.Actions["metrics"] = actionMetrics
 	gMoleculerService.Actions["getUserOnlineInfo"] = actionGetUserOnlineInfo
 
 	//init listen events handlers
@@ -45,6 +46,13 @@ func actionCount(req *protocol.MsRequest) (interface{}, error) {
 	count := gHub.count()
 	log.Info("run actionCount, count: ", count)
 	return count, nil
+}
+
+func actionMetrics(req *protocol.MsRequest) (interface{}, error) {
+	log.Info("run actionMetrics")
+	metrics := gHub.metrics()
+	log.Info("run actionMetrics, metrics: ", metrics)
+	return metrics, nil
 }
 
 func actionGetUserOnlineInfo(req *protocol.MsRequest) (interface{}, error) {

@@ -37,13 +37,19 @@ type Hub struct {
 func newHub() *Hub {
 	hub := &Hub{
 		hubClosed:      make(chan int, 10),
-		registerChan:   make(chan *Client, 1000),
-		unregisterChan: make(chan *Client, 1000),
+		registerChan:   make(chan *Client, 10000),
+		unregisterChan: make(chan *Client, 10000),
 	}
 
-	hub.inMsgHandlerPool = NewRunGoPool("hub.inMsgHandlerPool", 500, time.Millisecond*100, inMsgHandler)
+	rps := gRPS / 10
+	if rps < 1 {
+		rps = 1
+	}
+	log.Warn("config RPS = ", rps*10)
+
+	hub.inMsgHandlerPool = NewRunGoPool("hub.inMsgHandlerPool", rps, time.Millisecond*100, inMsgHandler)
 	hub.inMsgHandlerPool.Start()
-	hub.outMsgHandlerPool = NewRunGoPool("hub.outMsgHandlerPool", 500, time.Millisecond*100, outMsgHandler)
+	hub.outMsgHandlerPool = NewRunGoPool("hub.outMsgHandlerPool", rps, time.Millisecond*100, outMsgHandler)
 	hub.outMsgHandlerPool.Start()
 
 	return hub
@@ -55,6 +61,8 @@ type inMsgType int
 const (
 	clientMsg     inMsgType = iota // value --> 0
 	syncUsersInfo                  // value --> 1
+	clientOnline                   // value --> 2
+	clientOffline                  // value --> 3
 )
 
 func (it inMsgType) String() string {
@@ -63,6 +71,8 @@ func (it inMsgType) String() string {
 		return "clientMsg"
 	case syncUsersInfo:
 		return "syncUsersInfo"
+	case clientOffline:
+		return "clientOffline"
 	default:
 		return "Unknow"
 	}
@@ -76,6 +86,7 @@ type inMsg struct {
 }
 
 func inMsgHandler(data interface{}) {
+	atomic.AddUint64(&gTotalAck, 1)
 	m, ok := data.(*inMsg)
 	if !ok {
 		return
@@ -116,6 +127,16 @@ func inMsgHandler(data interface{}) {
 		return
 	}
 
+	if m.t == clientOnline {
+		pBroker.Broadcast(cgBroadcastUserOnline, m.c)
+		return
+	}
+
+	if m.t == clientOffline {
+		pBroker.Broadcast(cgBroadcastUserOffline, m.c)
+		return
+	}
+
 }
 
 type outMsg struct {
@@ -125,6 +146,7 @@ type outMsg struct {
 }
 
 func outMsgHandler(data interface{}) {
+	atomic.AddUint64(&gTotalSend, 1)
 	m, ok := data.(*outMsg)
 	if !ok {
 		return
@@ -155,12 +177,10 @@ func (h *Hub) close() {
 	}
 }
 
-var gSendMessageCount uint64
-
 func (h *Hub) sendMessage(ids []string, msg interface{}) {
-	atomic.AddUint64(&gSendMessageCount, 1)
-	if atomic.LoadUint64(&gSendMessageCount)%10000 == 0 {
-		log.Info("Hub gSendMessageCount: ", gSendMessageCount)
+	atomic.AddUint64(&gTotalTrySend, 1)
+	if atomic.LoadUint64(&gTotalTrySend)%10000 == 0 {
+		log.Warn("Hub gTotalTrySend: ", gTotalTrySend)
 	}
 	h.outMsgHandlerPool.Add(&outMsg{
 		h:   h,
@@ -171,6 +191,7 @@ func (h *Hub) sendMessage(ids []string, msg interface{}) {
 }
 
 func (h *Hub) handleClientMessage(client *Client, msgType int, msg []byte) {
+	atomic.AddUint64(&gTotalTryAck, 1)
 	h.inMsgHandlerPool.Add(&inMsg{
 		h:   h,
 		c:   client,
@@ -214,6 +235,11 @@ func (h *Hub) run() {
 				if ok {
 					userID2Cids.(*sync.Map).Store(client.Cid, client)
 				}
+				h.inMsgHandlerPool.Add(&inMsg{
+					h: h,
+					c: client,
+					t: clientOnline,
+				})
 			case client := <-h.unregisterChan:
 				h.clients.Delete(client.Cid)
 				userID2Cids, ok := h.userID2Cids.Load(client.UserID)
@@ -228,6 +254,11 @@ func (h *Hub) run() {
 				if count == 0 {
 					h.userID2Cids.Delete(client.UserID)
 				}
+				h.inMsgHandlerPool.Add(&inMsg{
+					h: h,
+					c: client,
+					t: clientOffline,
+				})
 			case <-h.hubClosed:
 				return
 			}
@@ -242,14 +273,12 @@ func (h *Hub) register(c *Client) {
 	}
 	h.registerChan <- c
 	log.Warn("Hub register <<< client = ", c.String())
-	pBroker.Broadcast(cgBroadcastUserOnline, c)
 }
 
 func (h *Hub) unregister(c *Client) {
 	h.unregisterChan <- c
 	c.DisconnectTime = strconv.Itoa(int(time.Now().UnixNano() / 1e6))
 	log.Warn("Hub unregister ### client = ", c.String())
-	pBroker.Broadcast(cgBroadcastUserOffline, c)
 }
 
 //call ws-connector.count
@@ -267,6 +296,24 @@ func (h *Hub) count() int {
 	log.Warn("Hub count clients: ", count1)
 	log.Warn("Hub count userID2Cids: ", count2)
 	return count1
+}
+
+//call ws-connector.count
+func (h *Hub) metrics() interface{} {
+	metrics := &metricsStruct{}
+	var count uint64
+	h.clients.Range(func(key, value interface{}) bool {
+		count++
+		return true
+	})
+	metrics.OnlineUsers = count
+	metrics.TotalTrySend = atomic.LoadUint64(&gTotalTrySend)
+	metrics.TotalSend = atomic.LoadUint64(&gTotalSend)
+	metrics.TotalTryAck = atomic.LoadUint64(&gTotalTryAck)
+	metrics.TotalAck = atomic.LoadUint64(&gTotalAck)
+
+	log.Warn("Hub metrics: ", metrics)
+	return metrics
 }
 
 //emit ws-connector.in.kickClient --cid uaaa_web3

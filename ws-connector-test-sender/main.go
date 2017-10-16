@@ -2,20 +2,24 @@ package main
 
 import (
 	"flag"
+	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
 	rotatelogs "github.com/lestrrat/go-file-rotatelogs"
+	nats "github.com/nats-io/go-nats"
 	"github.com/rifflock/lfshook"
+	moleculer "github.com/roytan883/moleculer-go"
 	logrus "github.com/sirupsen/logrus"
 	"github.com/xlab/closer"
 )
 
 const (
 	//AppName ...
-	AppName = "ws-connector-test-clients"
+	AppName = "ws-connector-test-sender"
 	//ServiceName ...
 	ServiceName = AppName
 )
@@ -103,42 +107,85 @@ var upgrader = websocket.Upgrader{
 // ws-connector -s nats://192.168.1.69:12008
 // ws-connector -s nats://127.0.0.1:4222
 func usage() {
-	log.Fatalf("Usage: ws-connector-test [-s server (127.0.0.1:12020)] [-d debug (0)] [-c TestCount (1)] [-u TestUserName (gotest-user-)] \n")
+	log.Fatalf("Usage: ws-connector-test [-s The nats server URLs (nats://192.168.1.69:12008)] [-d debug (0)] [-c TestCount (1)] [-u TestUserName (gotest-user-)] [-ur TestUserName range (9999)]\n")
 }
 
-//.\ws-connector-test-clients.exe -c 10000
+var gCloseChan chan int
+
+//.\ws-connector-test-sender.exe -s nats://192.168.1.69:12008 -c 500
 func main() {
+
+	gCloseChan = make(chan int, 1)
+
 	closer.Bind(cleanupFunc)
 
-	_gUrls := flag.String("s", "127.0.0.1:12020", "The websocket server host address")
+	_gUrls := flag.String("s", nats.DefaultURL, "The nats server URLs (separated by comma, default localhost:4222)")
 	_gIsDebug := flag.Int("d", 0, "is debug")
-	_gTestCount := flag.Int("c", 1, "test websocket count")
+	_gTestCount := flag.Int("c", 1, "test send message RPS")
 	_gTestUserName := flag.String("u", "gotest-user-", "TestUserName prefix")
+	_gTestUserNameRange := flag.Int("ur", 9999, "TestUserName range")
 	flag.Usage = usage
 	flag.Parse()
 
 	gUrls = *_gUrls
 	gIsDebug = *_gIsDebug
 	gTestCount = *_gTestCount
-
 	gTestUserName = *_gTestUserName
+	gTestUserNameRange = *_gTestUserNameRange
 
 	setDebug()
 
 	log.Infof("Start %s ...\n", AppName)
 
-	urlString := "wss://" + gUrls + "/ws?"
-	userID := gTestUserName
-	platform := "gotest"
-	version := "0.0.1"
-	timestamp := "111"
-	token := "gotesttoken"
+	gNatsHosts = strings.Split(gUrls, ",")
 
-	for index := 0; index < gTestCount; index++ {
-		id := userID + strconv.Itoa(index)
-		theURLString := urlString + "userID=" + id + "&platform=" + platform + "&version=" + version + "&timestamp=" + timestamp + "&token=" + token
-		NewWsClient(id, theURLString)
+	//init service and broker
+	config := &moleculer.ServiceBrokerConfig{
+		NatsHost:              gNatsHosts,
+		NodeID:                AppName,
+		DefaultRequestTimeout: time.Second * 2,
+		// LogLevel: moleculer.DebugLevel,
+		LogLevel: moleculer.ErrorLevel,
+		Services: make(map[string]moleculer.Service),
 	}
+	broker, err := moleculer.NewServiceBroker(config)
+	if err != nil {
+		log.Fatalf("NewServiceBroker err: %v\n", err)
+	}
+	pBroker = broker
+	err = broker.Start()
+	if err != nil {
+		log.Fatalf("exit process, broker.Start err: %v\n", err)
+		return
+	}
+
+	go func() {
+		ticker := time.NewTicker(time.Second * 1)
+		for {
+			select {
+			case <-ticker.C:
+				// log.Info("ALL Goroutine: ", runtime.NumGoroutine())
+				for index := 0; index < gTestCount; index++ {
+					id := gTestUserName + strconv.Itoa(rand.Intn(gTestUserNameRange))
+					mid := id + "-" + strconv.Itoa(int(time.Now().UnixNano())) + "-" + strconv.Itoa(rand.Intn(gTestUserNameRange))
+					testData := map[string]interface{}{
+						"ids": id,
+						"data": map[string]interface{}{
+							"mid": mid,
+							"msg": map[string]interface{}{
+								"aaa": "hello world",
+								"bbb": 123,
+								"ccc": true,
+							},
+						},
+					}
+					pBroker.Broadcast("ws-connector.in.push", testData)
+				}
+			case <-gCloseChan:
+				return
+			}
+		}
+	}()
 
 	log.Warn("================= Server Started ================= ")
 
@@ -148,6 +195,7 @@ func main() {
 func cleanupFunc() {
 	log.Infof("Hang on! %s is closing ...", AppName)
 	log.Warn("=================== exit start =================== ")
+	gCloseChan <- 1
 	time.Sleep(time.Second * 1)
 	log.Warn("=================== exit end   =================== ")
 	log.Infof("%s is closed", AppName)

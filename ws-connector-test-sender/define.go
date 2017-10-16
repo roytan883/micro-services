@@ -16,11 +16,11 @@ var gUrls string
 var gNatsHosts []string
 var gPort int
 var gID int
-var gRPS int
 var gIsDebug int
+var gTestCount int
+var gTestUserName string
+var gTestUserNameRange int
 var gNodeID = AppName
-
-var gHub *Hub
 
 const (
 	// Time allowed to write a message to the peer.
@@ -98,16 +98,3 @@ func (v *verifyTokenStruct) String() string {
 type verifyTokenResultStruct struct {
 	Invalid bool `json:"invalid"` //GO default bool is false, so use invalid == true to detect invalid token
 }
-
-type metricsStruct struct {
-	OnlineUsers  uint64 `json:"onlineUsers"`
-	TotalTrySend uint64 `json:"totalTrySend"`
-	TotalSend    uint64 `json:"totalSend"`
-	TotalTryAck  uint64 `json:"totalTryAck"`
-	TotalAck     uint64 `json:"totalAck"`
-}
-
-var gTotalTrySend uint64
-var gTotalSend uint64
-var gTotalTryAck uint64
-var gTotalAck uint64

@@ -101,7 +101,7 @@ func setDebug() {
 // ws-connector -s nats://192.168.1.69:12008
 // ws-connector -s nats://127.0.0.1:4222
 func usage() {
-	log.Fatalf("Usage: ws-connector [-s server (%s)] [-p port (12020)] [-i nodeID (0)] [-d debug (0)] \n", nats.DefaultURL)
+	log.Fatalf("Usage: ws-connector [-s server (%s)] [-p port (12020)] [-i nodeID (0)] [-d debug (0)] [-r RPS (2500)] \n", nats.DefaultURL)
 }
 
 //debug: go run .\main.go .\ws-connector.go
@@ -112,6 +112,7 @@ func main() {
 	_gUrls := flag.String("s", nats.DefaultURL, "The nats server URLs (separated by comma, default localhost:4222)")
 	_gPort := flag.Int("p", 12020, "listen websocket port")
 	_gID := flag.Int("i", 0, "ID of the service on this machine")
+	_gRPS := flag.Int("r", 2500, "max request per second")
 	_gIsDebug := flag.Int("d", 0, "is debug")
 	flag.Usage = usage
 	flag.Parse()
@@ -119,6 +120,7 @@ func main() {
 	gUrls = *_gUrls
 	gPort = *_gPort
 	gID = *_gID
+	gRPS = *_gRPS
 	gIsDebug = *_gIsDebug
 
 	setDebug()

@@ -41,7 +41,7 @@ func (c *WsClient) run() {
 				log.Println("WsClient read err: ", err)
 				return
 			}
-			log.Info("WsClient recv: ", string(message))
+			// log.Info("WsClient recv: ", string(message))
 			jsonObj := &pushMsgDataStruct{}
 			err = jsoniter.Unmarshal(message, jsonObj)
 			if err == nil {
