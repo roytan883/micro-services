@@ -25,7 +25,7 @@ func NewWsClient(name string, url string) *WsClient {
 	conn, _, err := wsDialer.Dial(url, nil)
 	c.conn = conn
 	if err != nil {
-		log.Fatal("WsClient dial err: ", err)
+		log.Errorf("WsClient [%s] dial err: ", name, err)
 		return nil
 	}
 	c.run()

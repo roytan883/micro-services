@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync/atomic"
 	// _ "net/http/pprof" //https://localhost:12020/debug/pprof
 	"os"
 	"runtime/pprof"
@@ -240,6 +241,16 @@ func gettoken(w http.ResponseWriter, r *http.Request) {
 
 // serveWs handles websocket requests from the peer.
 func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
+	defer atomic.AddInt64(&gCurrentAccepting, -1)
+	atomic.AddInt64(&gCurrentAccepting, 1)
+
+	//max concurrenty accept new webscoket 500
+	if atomic.LoadInt64(&gCurrentAccepting) > maxConcurrentAccept {
+		log.Warn("Too Busy: gCurrentAccepting = ", gCurrentAccepting)
+		w.WriteHeader(503)
+		w.Write([]byte("Service Unavailable"))
+		return
+	}
 
 	log.Printf("serveWs url = %v", r.URL)
 
@@ -314,8 +325,8 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else {
-		log.Warn("RPC ws-token.verify err: ", err)
-		log.Warn("RPC ws-token.verify err, default allow client connection: ", userID+"_"+platform)
+		// log.Warn("RPC ws-token.verify err: ", err)
+		// log.Warn("RPC ws-token.verify err, default allow client connection: ", userID+"_"+platform)
 	}
 
 	// encodeString := userID + platform + version + timestamp + sha256salt

@@ -32,6 +32,8 @@ const (
 	// Send pings to peer with this period. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
 
+	maxConcurrentAccept = 500
+
 	// Maximum message size allowed from peer.
 	// maxMessageSize = 1024 * 4
 )
@@ -100,14 +102,16 @@ type verifyTokenResultStruct struct {
 }
 
 type metricsStruct struct {
-	OnlineUsers  uint64 `json:"onlineUsers"`
-	TotalTrySend uint64 `json:"totalTrySend"`
-	TotalSend    uint64 `json:"totalSend"`
-	TotalTryAck  uint64 `json:"totalTryAck"`
-	TotalAck     uint64 `json:"totalAck"`
+	OnlineUsers      uint64 `json:"onlineUsers"`
+	TotalTrySend     uint64 `json:"totalTrySend"`
+	TotalSend        uint64 `json:"totalSend"`
+	TotalTryAck      uint64 `json:"totalTryAck"`
+	TotalAck         uint64 `json:"totalAck"`
+	CurrentAccepting int64  `json:"currentAccepting"`
 }
 
 var gTotalTrySend uint64
 var gTotalSend uint64
 var gTotalTryAck uint64
 var gTotalAck uint64
+var gCurrentAccepting int64

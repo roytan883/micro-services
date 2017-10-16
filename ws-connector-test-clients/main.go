@@ -137,7 +137,8 @@ func main() {
 	for index := 0; index < gTestCount; index++ {
 		id := userID + strconv.Itoa(index)
 		theURLString := urlString + "userID=" + id + "&platform=" + platform + "&version=" + version + "&timestamp=" + timestamp + "&token=" + token
-		NewWsClient(id, theURLString)
+		time.Sleep(time.Millisecond * 2)
+		go NewWsClient(id, theURLString)
 	}
 
 	log.Warn("================= Server Started ================= ")

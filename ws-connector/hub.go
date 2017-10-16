@@ -37,8 +37,8 @@ type Hub struct {
 func newHub() *Hub {
 	hub := &Hub{
 		hubClosed:      make(chan int, 10),
-		registerChan:   make(chan *Client, 10000),
-		unregisterChan: make(chan *Client, 10000),
+		registerChan:   make(chan *Client, 2500),
+		unregisterChan: make(chan *Client, 2500),
 	}
 
 	rps := gRPS / 10
@@ -86,7 +86,7 @@ type inMsg struct {
 }
 
 func inMsgHandler(data interface{}) {
-	atomic.AddUint64(&gTotalAck, 1)
+
 	m, ok := data.(*inMsg)
 	if !ok {
 		return
@@ -98,6 +98,7 @@ func inMsgHandler(data interface{}) {
 		err := jsoniter.Unmarshal(m.msg, jsonObj)
 		if err == nil {
 			if len(jsonObj.Aid) > 0 {
+				atomic.AddUint64(&gTotalAck, 1)
 				log.Info("inMsgHandler, handle ACK = ", jsonObj.Aid)
 				jsonObj.Cid = m.c.Cid
 				jsonObj.UserID = m.c.UserID
@@ -146,21 +147,28 @@ type outMsg struct {
 }
 
 func outMsgHandler(data interface{}) {
-	atomic.AddUint64(&gTotalSend, 1)
+
 	m, ok := data.(*outMsg)
 	if !ok {
 		return
 	}
 
+	atomic.AddUint64(&gTotalSend, 1)
+
 	// log.Infof("Hub outMsgHandler from client[%s] msgType[%d] msg: %s\n", m.c.Cid, m.msgType, m.msg)
 	for _, clientID := range m.ids {
 		// log.Infof("Hub outMsgHandler to client[%s]\n", clientID)
 		if client, ok := m.h.clients.Load(clientID); ok {
-			client.(*Client).send(m.msg)
+			if clientObj, ok := client.(*Client); ok {
+				clientObj.send(m.msg)
+			}
+
 		}
 		if userID2Cids, ok := m.h.userID2Cids.Load(clientID); ok {
 			userID2Cids.(*sync.Map).Range(func(key, value interface{}) bool {
-				value.(*Client).send(m.msg)
+				if clientObj, ok := value.(*Client); ok {
+					clientObj.send(m.msg)
+				}
 				return true
 			})
 		}
@@ -169,7 +177,9 @@ func outMsgHandler(data interface{}) {
 
 func (h *Hub) close() {
 	h.clients.Range(func(key, value interface{}) bool {
-		value.(*Client).close()
+		if clientObj, ok := value.(*Client); ok {
+			clientObj.close()
+		}
 		return true
 	})
 	for index := 0; index < 10; index++ {
@@ -226,14 +236,19 @@ func (h *Hub) run() {
 		for {
 			select {
 			case client := <-h.registerChan:
+				log.Warn("Hub register <<< client = ", client.String())
+
 				//userID_platform save
 				h.clients.Store(client.Cid, client)
 
 				//userID save
 				h.userID2Cids.LoadOrStore(client.UserID, &sync.Map{})
+
 				userID2Cids, ok := h.userID2Cids.Load(client.UserID)
 				if ok {
-					userID2Cids.(*sync.Map).Store(client.Cid, client)
+					if userID2CidsMap, ok := userID2Cids.(*sync.Map); ok {
+						userID2CidsMap.Store(client.Cid, client)
+					}
 				}
 				h.inMsgHandlerPool.Add(&inMsg{
 					h: h,
@@ -241,19 +256,25 @@ func (h *Hub) run() {
 					t: clientOnline,
 				})
 			case client := <-h.unregisterChan:
+				log.Warn("Hub unregister ### client = ", client.String())
+
 				h.clients.Delete(client.Cid)
 				userID2Cids, ok := h.userID2Cids.Load(client.UserID)
 				if ok {
-					userID2Cids.(*sync.Map).Delete(client.Cid)
+					if userID2CidsMap, ok := userID2Cids.(*sync.Map); ok {
+						userID2CidsMap.Delete(client.Cid)
+						count := 0
+						userID2CidsMap.Range(func(key, value interface{}) bool {
+							count++
+							return true
+						})
+						if count == 0 {
+							h.userID2Cids.Delete(client.UserID)
+						}
+					}
+					// userID2Cids.(*sync.Map).Delete(client.Cid)
 				}
-				count := 0
-				userID2Cids.(*sync.Map).Range(func(key, value interface{}) bool {
-					count++
-					return true
-				})
-				if count == 0 {
-					h.userID2Cids.Delete(client.UserID)
-				}
+
 				h.inMsgHandlerPool.Add(&inMsg{
 					h: h,
 					c: client,
@@ -269,16 +290,17 @@ func (h *Hub) run() {
 func (h *Hub) register(c *Client) {
 	if oldClient, ok := h.clients.Load(c.Cid); ok {
 		log.Info("Hub: kick old when register client: ", c.Cid)
-		oldClient.(*Client).kick()
+		if oldClientObj, ok := oldClient.(*Client); ok {
+			oldClientObj.kick()
+		}
 	}
 	h.registerChan <- c
-	log.Warn("Hub register <<< client = ", c.String())
+
 }
 
 func (h *Hub) unregister(c *Client) {
 	h.unregisterChan <- c
 	c.DisconnectTime = strconv.Itoa(int(time.Now().UnixNano() / 1e6))
-	log.Warn("Hub unregister ### client = ", c.String())
 }
 
 //call ws-connector.count
@@ -311,6 +333,7 @@ func (h *Hub) metrics() interface{} {
 	metrics.TotalSend = atomic.LoadUint64(&gTotalSend)
 	metrics.TotalTryAck = atomic.LoadUint64(&gTotalTryAck)
 	metrics.TotalAck = atomic.LoadUint64(&gTotalAck)
+	metrics.CurrentAccepting = atomic.LoadInt64(&gCurrentAccepting)
 
 	log.Warn("Hub metrics: ", metrics)
 	return metrics
@@ -320,7 +343,9 @@ func (h *Hub) metrics() interface{} {
 func (h *Hub) kickClient(cid string) {
 	log.Info("Hub kickClient: cid = ", cid)
 	if oldClient, ok := h.clients.Load(cid); ok {
-		oldClient.(*Client).kick()
+		if oldClientObj, ok := oldClient.(*Client); ok {
+			oldClientObj.kick()
+		}
 	}
 }
 
@@ -329,7 +354,9 @@ func (h *Hub) kickUser(userID string) {
 	log.Info("Hub kickUser: userID = ", userID)
 	if userID2Cids, ok := h.userID2Cids.Load(userID); ok {
 		userID2Cids.(*sync.Map).Range(func(key, value interface{}) bool {
-			value.(*Client).kick()
+			if oldClientObj, ok := value.(*Client); ok {
+				oldClientObj.kick()
+			}
 			return true
 		})
 	}
