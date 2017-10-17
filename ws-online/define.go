@@ -20,6 +20,7 @@ var gTestCount int
 var gTestUserName string
 var gTestUserNameRange int
 var gAbandonMinutes int
+var gSyncDelaySeconds int
 var gNodeID = AppName
 
 const (

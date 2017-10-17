@@ -38,6 +38,10 @@ func createMoleculerService() moleculer.Service {
 	}
 	gShortOnlineHub.runCheckAbandonUsers()
 
+	time.AfterFunc(time.Second*time.Duration(gSyncDelaySeconds), func() {
+		pBroker.Broadcast(cWsConnectorInSyncUsersInfo, nil)
+	})
+
 	return *gMoleculerService
 }
 
