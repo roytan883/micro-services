@@ -56,14 +56,10 @@ const (
 
 	cWsTokenActionVerify = "ws-token.verify"
 
-	//in: userIDStruct `json:"userID"` || out:isShortOnlineStruct `json:"isShortOnline"`
-	cWsOnlineActionIsShortOnline = "isShortOnline"
-	//in: userIDStruct `json:"userID"` || out:isRealOnlineStruct `json:"isRealOnline"`
-	cWsOnlineActionIsRealOnline = "isRealOnline"
-	//in: userIDStruct `json:"userID"` || out:realOnlineInfosStruct `json:"realOnlineInfos"`
-	cWsOnlineActionRealOnlineInfos = "realOnlineInfos"
-	cWsOnlineOutOnline             = "ws-online.out.online"
-	cWsOnlineOutOffline            = "ws-online.out.offline"
+	//in: userIDStruct `json:"userID"` || out:onlineStatusStruct
+	cWsOnlineActionOnlineStatus = "onlineStatus"
+	cWsOnlineOutOnline          = "ws-online.out.online"
+	cWsOnlineOutOffline         = "ws-online.out.offline"
 )
 
 //ClientInfo ...
@@ -83,14 +79,8 @@ type userIDStruct struct {
 	UserID string `json:"userID"`
 }
 
-type isShortOnlineStruct struct {
-	IsShortOnline bool `json:"isShortOnline"`
-}
-
-type isRealOnlineStruct struct {
-	IsRealOnline bool `json:"isRealOnline"`
-}
-
-type realOnlineInfosStruct struct {
+type onlineStatusStruct struct {
+	IsShortOnline   bool          `json:"isShortOnline"`
+	IsRealOnline    bool          `json:"isRealOnline"`
 	RealOnlineInfos []*ClientInfo `json:"realOnlineInfos"`
 }

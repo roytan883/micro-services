@@ -24,9 +24,7 @@ func createMoleculerService() moleculer.Service {
 	}
 
 	//init actions handlers
-	gMoleculerService.Actions[cWsOnlineActionIsShortOnline] = actionIsShortOnline
-	gMoleculerService.Actions[cWsOnlineActionIsRealOnline] = actionIsRealOnline
-	gMoleculerService.Actions[cWsOnlineActionRealOnlineInfos] = actionRealOnlineInfos
+	gMoleculerService.Actions[cWsOnlineActionOnlineStatus] = actionOnlineStatus
 
 	//init listen events handlers
 	gMoleculerService.Events[cWsConnectorOutOnline] = eventWsConnectorOutOnline
@@ -43,70 +41,35 @@ func createMoleculerService() moleculer.Service {
 	return *gMoleculerService
 }
 
-func actionIsShortOnline(req *protocol.MsRequest) (interface{}, error) {
+func actionOnlineStatus(req *protocol.MsRequest) (interface{}, error) {
 
 	userID := parseUserID(req)
 	if len(userID) < 1 {
 		return nil, errors.New("Parse userID error")
 	}
 
-	log.Info("run actionIsShortOnline: ", userID)
+	log.Info("run actionOnlineStatus: ", userID)
 
-	if _, ok := gShortOnlineHub.Users.Load(userID); ok {
-		return &isShortOnlineStruct{IsShortOnline: true}, nil
+	onlineStatus := &onlineStatusStruct{
+		RealOnlineInfos: make([]*ClientInfo, 0),
 	}
-	return &isShortOnlineStruct{IsShortOnline: false}, nil
-}
-
-func actionIsRealOnline(req *protocol.MsRequest) (interface{}, error) {
-	userID := parseUserID(req)
-	if len(userID) < 1 {
-		return nil, errors.New("Parse userID error")
-	}
-
-	log.Info("run actionIsRealOnline: ", userID)
 
 	if userInfo, ok := gShortOnlineHub.Users.Load(userID); ok {
-		userInfoObj, ok := userInfo.(*UserInfo)
-		if ok {
-			count := 0
-			userInfoObj.Clients.Range(func(key, value interface{}) bool {
-				count++
-				return true
-			})
-			if count > 0 {
-				return &isRealOnlineStruct{IsRealOnline: true}, nil
-
-			}
-		}
-	}
-	return &isRealOnlineStruct{IsRealOnline: false}, nil
-}
-
-func actionRealOnlineInfos(req *protocol.MsRequest) (interface{}, error) {
-
-	userID := parseUserID(req)
-	if len(userID) < 1 {
-		return nil, errors.New("Parse userID error")
-	}
-
-	log.Info("run actionRealOnlineInfos: ", userID)
-
-	if userInfo, ok := gShortOnlineHub.Users.Load(userID); ok {
+		onlineStatus.IsShortOnline = true
 		userInfoObj, ok := userInfo.(*UserInfo)
 		if ok {
 			realOnlineInfos := make([]*ClientInfo, 0)
 			userInfoObj.Clients.Range(func(key, value interface{}) bool {
 				if clientInfo, ok := value.(*ClientInfo); ok {
+					onlineStatus.IsRealOnline = true
 					realOnlineInfos = append(realOnlineInfos, clientInfo)
 				}
 				return true
 			})
-			return &realOnlineInfosStruct{RealOnlineInfos: realOnlineInfos}, nil
+			onlineStatus.RealOnlineInfos = realOnlineInfos
 		}
 	}
-	return &realOnlineInfosStruct{RealOnlineInfos: make([]*ClientInfo, 0)}, nil
-
+	return onlineStatus, nil
 }
 
 func parseUserID(req *protocol.MsRequest) string {
@@ -195,6 +158,8 @@ func handlerClientInfo(req *protocol.MsEvent) {
 	}
 	log.Info("handlerClientInfo newUserInfo = ", newUserInfo)
 
+	isOnline := newUserInfo.LastOnlineTime.After(newUserInfo.LastOfflineTime)
+
 	userInfo, isOld := gShortOnlineHub.Users.LoadOrStore(clientInfo.UserID, newUserInfo)
 	userInfoObj, ok := userInfo.(*UserInfo)
 	if !ok {
@@ -202,13 +167,11 @@ func handlerClientInfo(req *protocol.MsEvent) {
 		return
 	}
 
-	if !isOld {
+	if !isOld && isOnline {
 		pBroker.Broadcast(cWsOnlineOutOnline, clientInfo)
 	}
 
 	userInfoObj.LastClientInfo = clientInfo
-
-	isOnline := newUserInfo.LastOnlineTime.After(newUserInfo.LastOfflineTime)
 
 	if isOnline {
 		userInfoObj.LastOnlineTime = newUserInfo.LastOnlineTime
