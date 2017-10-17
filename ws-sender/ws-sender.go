@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"sync"
+	"time"
 
 	// _ "net/http/pprof" //https://localhost:12020/debug/pprof
 
@@ -25,9 +28,16 @@ func createMoleculerService() moleculer.Service {
 	gMoleculerService.Actions["send"] = actionSend
 
 	//init listen events handlers
-	// gMoleculerService.Events[cWsConnectorOutOnline] = eventWsConnectorOutOnline
+	gMoleculerService.Events[cWsConnectorOutAck] = eventWsConnectorOutAck
 	// gMoleculerService.Events[cWsConnectorOutOffline] = eventWsConnectorOutOffline
 	// gMoleculerService.Events[cWsConnectorOutSyncUsersInfo] = eventWsConnectorOutSyncUsersInfo
+
+	gLocalSaveHub = &LocalSaveHub{
+		waitAckMsgs: &sync.Map{},
+		hubClosed:   make(chan int, 1),
+	}
+
+	gLocalSaveHub.runCheckLocalSaveSend()
 
 	return *gMoleculerService
 }
@@ -108,9 +118,9 @@ func doSend(ids []string, data *pushMsgDataStruct) {
 						nodes = append(nodes, clientInfo.UserID)
 						wsConnectorNodes[clientInfo.NodeID] = nodes
 					}
-					localSaveSend(clientInfo.Cid, data.Mid, data)
+					gLocalSaveHub.save(clientInfo.UserID, clientInfo.Cid, data.Mid, data)
 				} else {
-					cacheSaveSend(clientInfo.Cid, data.Mid, data)
+					saveToRemoteCache(clientInfo.UserID, clientInfo.Cid, data.Mid, data)
 				}
 			}
 		}
@@ -127,17 +137,78 @@ func doSend(ids []string, data *pushMsgDataStruct) {
 	}()
 }
 
-func localSaveSend(cid string, mid string, data *pushMsgDataStruct) {
+var gLocalSaveHub *LocalSaveHub
 
+//LocalSaveHub ...
+type LocalSaveHub struct {
+	waitAckMsgs *sync.Map
+	hubClosed   chan int
 }
 
-func cacheSaveSend(cid string, mid string, data *pushMsgDataStruct) {
-
+func (h *LocalSaveHub) save(userID string, cid string, mid string, data *pushMsgDataStruct) {
+	key := fmt.Sprintf("%s.%s.%s", mid, userID, cid)
+	h.waitAckMsgs.Store(key, &waitAckStruct{
+		UserID:   userID,
+		Cid:      cid,
+		Mid:      mid,
+		Data:     data,
+		SendTime: time.Now(),
+	})
 }
 
-// func eventWsConnectorOutOffline(req *protocol.MsEvent) {
-// 	log.Info("run eventWsConnectorOutOffline")
-// }
+func (h *LocalSaveHub) runCheckLocalSaveSend() {
+	go func() {
+		ticker := time.NewTicker(time.Second * 5)
+		for {
+			select {
+			case <-ticker.C:
+				now := time.Now()
+				h.waitAckMsgs.Range(func(key, value interface{}) bool {
+					if waitAck, ok := value.(*waitAckStruct); ok {
+						diff := now.Sub(waitAck.SendTime)
+						if diff > time.Second*time.Duration(gWaitAckSeconds) {
+							h.waitAckMsgs.Delete(key)
+							log.Info("move waitAckMsg to remote cache: ", key)
+							saveToRemoteCache(waitAck.UserID, waitAck.Cid, waitAck.Mid, waitAck.Data)
+						}
+					}
+					return true
+				})
+			case <-h.hubClosed:
+				return
+			}
+		}
+	}()
+}
+
+func saveToRemoteCache(userID string, cid string, mid string, data *pushMsgDataStruct) {
+	//TODO: save msg to remote cache process
+	log.Info("saveToRemoteCache userID = ", userID)
+	log.Info("saveToRemoteCache cid = ", cid)
+	log.Info("saveToRemoteCache mid = ", mid)
+	log.Info("saveToRemoteCache data = ", data)
+}
+
+func eventWsConnectorOutAck(req *protocol.MsEvent) {
+	log.Info("run eventWsConnectorOutAck")
+
+	jsonByte, err := jsoniter.Marshal(req.Data)
+	if err != nil {
+		log.Warn("run eventWsConnectorOutAck, parse req.Data to jsonByte error: ", err)
+		return
+	}
+	jsonObj := &ackStruct{}
+	err = jsoniter.Unmarshal(jsonByte, jsonObj)
+	if err != nil {
+		log.Warn("run eventWsConnectorOutAck, parse jsonByte to jsonObj ackStruct error: ", err)
+		return
+	}
+	if len(jsonObj.Aid) > 0 {
+		key := fmt.Sprintf("%s.%s.%s", jsonObj.Aid, jsonObj.UserID, jsonObj.Cid)
+		gLocalSaveHub.waitAckMsgs.Delete(key)
+		log.Info("finish ACK: ", key)
+	}
+}
 
 // func eventWsConnectorOutOnline(req *protocol.MsEvent) {
 // 	log.Info("run eventWsConnectorOutOnline")

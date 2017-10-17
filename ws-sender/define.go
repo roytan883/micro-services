@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	moleculer "github.com/roytan883/moleculer-go"
 	logrus "github.com/sirupsen/logrus"
 )
@@ -14,10 +16,8 @@ var gNatsHosts []string
 var gPort int
 var gID int
 var gIsDebug int
-var gTestCount int
-var gTestUserName string
-var gTestUserNameRange int
 var gNodeID = AppName
+var gWaitAckSeconds int
 
 const (
 	cWsConnectorActionPush       = "ws-connector.push"
@@ -94,4 +94,12 @@ type onlineStatusStruct struct {
 
 type onlineStatusBulkStruct struct {
 	OnlineStatusBulk []*onlineStatusStruct `json:"onlineStatusBulk"`
+}
+
+type waitAckStruct struct {
+	UserID   string
+	Cid      string
+	Mid      string
+	SendTime time.Time
+	Data     *pushMsgDataStruct
 }
