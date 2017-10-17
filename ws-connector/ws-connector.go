@@ -25,22 +25,22 @@ var gMoleculerService *moleculer.Service
 
 func createMoleculerService() moleculer.Service {
 	gMoleculerService = &moleculer.Service{
-		ServiceName: AppName,
+		ServiceName: ServiceName,
 		Actions:     make(map[string]moleculer.RequestHandler),
 		Events:      make(map[string]moleculer.EventHandler),
 	}
 
 	//init actions handlers
-	gMoleculerService.Actions["count"] = actionCount
-	gMoleculerService.Actions["metrics"] = actionMetrics
-	gMoleculerService.Actions["getUserOnlineInfo"] = actionGetUserOnlineInfo
+	gMoleculerService.Actions[cWsConnectorActionCount] = actionCount
+	gMoleculerService.Actions[cWsConnectorActionMetrics] = actionMetrics
+	gMoleculerService.Actions[cWsConnectorActionUserInfo] = actionUserInfo
 
 	//init listen events handlers
-	gMoleculerService.Events[cgListenKickClient] = eventInKickClient
-	gMoleculerService.Events[cgListenKickUser] = eventInKickUser
-	gMoleculerService.Events[cgListenPush] = eventInPush
-	gMoleculerService.Events[cgListeSyncUsersInfo] = eventInSyncUsersInfo
-	gMoleculerService.Events[cgListeSyncMetrics] = eventInSyncMetrics
+	gMoleculerService.Events[cWsConnectorInKickClient] = eventInKickClient
+	gMoleculerService.Events[cWsConnectorInKickUser] = eventInKickUser
+	gMoleculerService.Events[cWsConnectorInPush] = eventInPush
+	gMoleculerService.Events[cWsConnectorInSyncUsersInfo] = eventInSyncUsersInfo
+	gMoleculerService.Events[cWsConnectorInSyncMetrics] = eventInSyncMetrics
 
 	return *gMoleculerService
 }
@@ -63,11 +63,11 @@ func eventInSyncMetrics(req *protocol.MsEvent) {
 	log.Info("run eventInSyncMetrics")
 	metrics := gHub.metrics()
 	log.Info("run eventInSyncMetrics, metrics: ", metrics)
-	pBroker.Broadcast(cgBroadcastSyncMetrics, metrics)
+	pBroker.Broadcast(cWsConnectorOutSyncMetrics, metrics)
 }
 
-func actionGetUserOnlineInfo(req *protocol.MsRequest) (interface{}, error) {
-	log.Info("run actionGetUserOnlineInfo, req.Params = ", req.Params)
+func actionUserInfo(req *protocol.MsRequest) (interface{}, error) {
+	log.Info("run actionUserInfo, req.Params = ", req.Params)
 	jsonString, err := jsoniter.Marshal(req.Params)
 	if err != nil {
 		log.Warn("run eventInKick, parse req.Data to jsonString error: ", err)
@@ -326,7 +326,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		Token:     token,
 	}
 	// res, err := pBroker.Call("pushConnector.verify", verifyToken, nil)
-	res, err := pBroker.Call(cgVerifyToken, verifyToken, nil)
+	res, err := pBroker.Call(cWsTokenActionVerify, verifyToken, nil)
 	if err == nil {
 		jsonByte, err := jsoniter.Marshal(res)
 		if err == nil {

@@ -104,7 +104,7 @@ func inMsgHandler(data interface{}) {
 				log.Info("inMsgHandler, handle ACK = ", jsonObj.Aid)
 				jsonObj.Cid = m.c.Cid
 				jsonObj.UserID = m.c.UserID
-				pBroker.Broadcast(cgBroadcastAck, jsonObj)
+				pBroker.Broadcast(cWsConnectorOutAck, jsonObj)
 			}
 			return
 		}
@@ -126,17 +126,17 @@ func inMsgHandler(data interface{}) {
 	}
 
 	if m.t == syncUsersInfo {
-		pBroker.Broadcast(cgBroadcastSyncUsersInfo, m.c)
+		pBroker.Broadcast(cWsConnectorOutSyncUsersInfo, m.c)
 		return
 	}
 
 	if m.t == clientOnline {
-		pBroker.Broadcast(cgBroadcastUserOnline, m.c)
+		pBroker.Broadcast(cWsConnectorOutOnline, m.c)
 		return
 	}
 
 	if m.t == clientOffline {
-		pBroker.Broadcast(cgBroadcastUserOffline, m.c)
+		pBroker.Broadcast(cWsConnectorOutOffline, m.c)
 		return
 	}
 

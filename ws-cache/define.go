@@ -3,7 +3,6 @@ package main
 import (
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
 	moleculer "github.com/roytan883/moleculer-go"
 	logrus "github.com/sirupsen/logrus"
 )
@@ -16,12 +15,11 @@ var gUrls string
 var gNatsHosts []string
 var gPort int
 var gID int
-var gRPS int
-var gMaxClients int
 var gIsDebug int
+var gTestCount int
+var gTestUserName string
+var gTestUserNameRange int
 var gNodeID = AppName
-
-var gHub *Hub
 
 const (
 	// Time allowed to write a message to the peer.
@@ -32,8 +30,6 @@ const (
 
 	// Send pings to peer with this period. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
-
-	maxConcurrentAccept = 500
 
 	// Maximum message size allowed from peer.
 	// maxMessageSize = 1024 * 4
@@ -57,6 +53,10 @@ const (
 	cWsConnectorOutSyncMetrics   = "ws-connector.out.syncMetrics"
 
 	cWsTokenActionVerify = "ws-token.verify"
+
+	cWsOnlineActionUserInfo = "userInfo"
+	cWsOnlineOutOnline      = "ws-online.out.online"
+	cWsOnlineOutOffline     = "ws-online.out.offline"
 )
 
 type ackStruct struct {
@@ -86,42 +86,3 @@ type kickUserStruct struct {
 type getUserOnlineInfoStruct struct {
 	UserID string `json:"userID"`
 }
-
-type verifyTokenStruct struct {
-	URL       string `json:"url"`
-	UserID    string `json:"userID"`
-	Platform  string `json:"platform"`
-	Version   string `json:"version"`
-	Timestamp string `json:"timestamp"`
-	Token     string `json:"token"`
-}
-
-func (v *verifyTokenStruct) String() string {
-	data, err := jsoniter.Marshal(v)
-	if err != nil {
-		return ""
-	}
-	return string(data)
-}
-
-type verifyTokenResultStruct struct {
-	Invalid bool `json:"invalid"` //GO default bool is false, so use invalid == true to detect invalid token
-}
-
-type metricsStruct struct {
-	NodeID           string `json:"nodeID"`
-	Port             int    `json:"port"`
-	OnlineUsers      uint64 `json:"onlineUsers"`
-	TotalTrySend     uint64 `json:"totalTrySend"`
-	TotalSend        uint64 `json:"totalSend"`
-	TotalTryAck      uint64 `json:"totalTryAck"`
-	TotalAck         uint64 `json:"totalAck"`
-	CurrentAccepting int64  `json:"currentAccepting"`
-}
-
-var gTotalTrySend uint64
-var gTotalSend uint64
-var gTotalTryAck uint64
-var gTotalAck uint64
-var gCurrentAccepting int64
-var gCurrentClients int64
