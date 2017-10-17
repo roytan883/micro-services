@@ -31,10 +31,10 @@ func createMoleculerService() moleculer.Service {
 	}
 
 	//init actions handlers
-	gMoleculerService.Actions[cWsConnectorActionPush] = actionPush
-	gMoleculerService.Actions[cWsConnectorActionCount] = actionCount
-	gMoleculerService.Actions[cWsConnectorActionMetrics] = actionMetrics
-	gMoleculerService.Actions[cWsConnectorActionUserInfo] = actionUserInfo
+	gMoleculerService.Actions["push"] = actionPush
+	gMoleculerService.Actions["count"] = actionCount
+	gMoleculerService.Actions["metrics"] = actionMetrics
+	gMoleculerService.Actions["userInfo"] = actionUserInfo
 
 	//init listen events handlers
 	gMoleculerService.Events[cWsConnectorInKickClient] = eventInKickClient
@@ -135,9 +135,6 @@ func actionPush(req *protocol.MsRequest) (interface{}, error) {
 		log.Warn("run actionPush, parse req.Data to jsonString error: ", err)
 		return nil, err
 	}
-	// log.Info("jsonString = ", string(jsonString))
-	// jsonString = []byte("{\"ids\":[\"uaaa\",\"bbb\"],\"data\":\"abc123\"}")
-	// log.Info("jsonString = ", string(jsonString))
 	jsonObj := &pushMsgStruct{}
 	err = jsoniter.Unmarshal(jsonString, jsonObj)
 	if err != nil {
@@ -148,25 +145,24 @@ func actionPush(req *protocol.MsRequest) (interface{}, error) {
 
 	// log.Info("type:", reflect.TypeOf(jsonObj.IDs))
 
+	ids := make([]string, 0)
 	switch jsonObj.IDs.(type) {
 	case []string:
-		gHub.sendMessage(jsonObj.IDs.([]string), jsonObj.Data)
+		ids = jsonObj.IDs.([]string)
 	case []interface{}:
-		ids := make([]string, 0)
 		_ids := jsonObj.IDs.([]interface{})
 		for _, v := range _ids {
 			if sv, ok := v.(string); ok {
 				ids = append(ids, sv)
 			}
 		}
-		gHub.sendMessage(ids, jsonObj.Data)
 	case string:
-		ids := strings.Split(jsonObj.IDs.(string), ",")
-		gHub.sendMessage(ids, jsonObj.Data)
+		ids = strings.Split(jsonObj.IDs.(string), ",")
 	default:
-		log.Info("can't parse  jsonObj.IDs")
+		log.Info("can't parse jsonObj.IDs")
 		return nil, errors.New("can't parse ids")
 	}
+	gHub.sendMessage(ids, jsonObj.Data)
 
 	return nil, nil
 }
@@ -181,9 +177,6 @@ func eventInPush(req *protocol.MsEvent) {
 		log.Warn("run eventInPush, parse req.Data to jsonString error: ", err)
 		return
 	}
-	// log.Info("jsonString = ", string(jsonString))
-	// jsonString = []byte("{\"ids\":[\"uaaa\",\"bbb\"],\"data\":\"abc123\"}")
-	// log.Info("jsonString = ", string(jsonString))
 	jsonObj := &pushMsgStruct{}
 	err = jsoniter.Unmarshal(jsonString, jsonObj)
 	if err != nil {
@@ -193,37 +186,24 @@ func eventInPush(req *protocol.MsEvent) {
 	log.Info("run eventInPush, jsonObj = ", jsonObj)
 
 	// log.Info("type:", reflect.TypeOf(jsonObj.IDs))
-
+	ids := make([]string, 0)
 	switch jsonObj.IDs.(type) {
 	case []string:
-		gHub.sendMessage(jsonObj.IDs.([]string), jsonObj.Data)
+		ids = jsonObj.IDs.([]string)
 	case []interface{}:
-		ids := make([]string, 0)
 		_ids := jsonObj.IDs.([]interface{})
 		for _, v := range _ids {
 			if sv, ok := v.(string); ok {
 				ids = append(ids, sv)
 			}
 		}
-		gHub.sendMessage(ids, jsonObj.Data)
 	case string:
-		ids := strings.Split(jsonObj.IDs.(string), ",")
-		gHub.sendMessage(ids, jsonObj.Data)
+		ids = strings.Split(jsonObj.IDs.(string), ",")
 	default:
-		log.Info("can't parse  jsonObj.IDs")
+		log.Info("can't parse jsonObj.IDs")
+		return
 	}
-
-	// if ids1, ok := jsonObj.IDs.(stringArray); ok {
-	// 	gHub.sendMessage(ids1, data)
-	// 	return
-	// }
-	// if ids2, ok := jsonObj.IDs.(string); ok {
-	// 	ids3 := strings.Split(ids2, ",")
-	// 	gHub.sendMessage(ids3, data)
-	// 	return
-	// }
-	// log.Info("can't parse  jsonObj.IDs")
-	// gHub.sendMessage(jsonObj.IDs, []byte(jsonObj.Data))
+	gHub.sendMessage(ids, jsonObj.Data)
 }
 
 func serveHome(w http.ResponseWriter, r *http.Request) {
@@ -414,7 +394,7 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 
 	client := &Client{
 		// ID:           strconv.Itoa(int(gClientID)),
-		Cid:            fmt.Sprintf("%s_%s", userID, platform),
+		Cid:            fmt.Sprintf("%s_%s_%s", userID, platform, gNodeID),
 		UserID:         userID,
 		Platform:       platform,
 		Version:        version,

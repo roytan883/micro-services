@@ -42,10 +42,10 @@ const (
 type gCmdType uint32
 
 const (
-	cWsConnectorActionPush       = "push"
-	cWsConnectorActionCount      = "count"
-	cWsConnectorActionMetrics    = "metrics"
-	cWsConnectorActionUserInfo   = "userInfo"
+	cWsConnectorActionPush       = "ws-connector.push"
+	cWsConnectorActionCount      = "ws-connector.count"
+	cWsConnectorActionMetrics    = "ws-connector.metrics"
+	cWsConnectorActionUserInfo   = "ws-connector.userInfo"
 	cWsConnectorInPush           = "ws-connector.in.push"
 	cWsConnectorInKickClient     = "ws-connector.in.kickClient"
 	cWsConnectorInKickUser       = "ws-connector.in.kickUser"
@@ -58,6 +58,15 @@ const (
 	cWsConnectorOutSyncMetrics   = "ws-connector.out.syncMetrics"
 
 	cWsTokenActionVerify = "ws-token.verify"
+
+	//in: userIDStruct `json:"userID"` || out:onlineStatusStruct
+	cWsOnlineActionOnlineStatus = "ws-online.onlineStatus"
+	//in: idsStruct `json:"ids"` || out:onlineStatusBulkStruct
+	cWsOnlineActionOnlineStatusBulk = "ws-online.onlineStatusBulk"
+	cWsOnlineOutOnline              = "ws-online.out.online"
+	cWsOnlineOutOffline             = "ws-online.out.offline"
+
+	cWsSenderActionSend = "ws-sender.send"
 )
 
 type ackStruct struct {

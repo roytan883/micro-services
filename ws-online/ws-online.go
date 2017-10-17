@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"strconv"
+	"strings"
 	"time"
 
 	// _ "net/http/pprof" //https://localhost:12020/debug/pprof
@@ -24,7 +25,8 @@ func createMoleculerService() moleculer.Service {
 	}
 
 	//init actions handlers
-	gMoleculerService.Actions[cWsOnlineActionOnlineStatus] = actionOnlineStatus
+	gMoleculerService.Actions["onlineStatus"] = actionOnlineStatus
+	gMoleculerService.Actions["onlineStatusBulk"] = actionOnlineStatusBulk
 
 	//init listen events handlers
 	gMoleculerService.Events[cWsConnectorOutOnline] = eventWsConnectorOutOnline
@@ -54,7 +56,57 @@ func actionOnlineStatus(req *protocol.MsRequest) (interface{}, error) {
 
 	log.Info("run actionOnlineStatus: ", userID)
 
+	return getOnlineStatus(userID), nil
+}
+
+func actionOnlineStatusBulk(req *protocol.MsRequest) (interface{}, error) {
+
+	jsonByte, err := jsoniter.Marshal(req.Params)
+	if err != nil {
+		log.Warn("run actionOnlineStatusBulk, parse req.Data to jsonByte error: ", err)
+		return nil, err
+	}
+	jsonObj := &idsStruct{}
+	err = jsoniter.Unmarshal(jsonByte, jsonObj)
+	if err != nil {
+		log.Warn("run actionOnlineStatusBulk, parse req.Data to jsonObj idsStruct error: ", err)
+		return nil, err
+	}
+
+	log.Info("run actionOnlineStatusBulk jsonObj.IDs: ", jsonObj.IDs)
+
+	ids := make([]string, 0)
+	switch jsonObj.IDs.(type) {
+	case []string:
+		ids = jsonObj.IDs.([]string)
+	case []interface{}:
+		_ids := jsonObj.IDs.([]interface{})
+		for _, v := range _ids {
+			if sv, ok := v.(string); ok {
+				ids = append(ids, sv)
+			}
+		}
+	case string:
+		ids = strings.Split(jsonObj.IDs.(string), ",")
+	default:
+		log.Info("can't parse jsonObj.IDs")
+		return nil, errors.New("can't parse ids")
+	}
+
+	onlineStatusBulk := &onlineStatusBulkStruct{
+		OnlineStatusBulk: make([]*onlineStatusStruct, 0),
+	}
+	for _, userID := range ids {
+		onlineStatus := getOnlineStatus(userID)
+		onlineStatusBulk.OnlineStatusBulk = append(onlineStatusBulk.OnlineStatusBulk, onlineStatus)
+	}
+
+	return onlineStatusBulk, nil
+}
+
+func getOnlineStatus(userID string) *onlineStatusStruct {
 	onlineStatus := &onlineStatusStruct{
+		UserID:          userID,
 		RealOnlineInfos: make([]*ClientInfo, 0),
 	}
 
@@ -73,7 +125,7 @@ func actionOnlineStatus(req *protocol.MsRequest) (interface{}, error) {
 			onlineStatus.RealOnlineInfos = realOnlineInfos
 		}
 	}
-	return onlineStatus, nil
+	return onlineStatus
 }
 
 func parseUserID(req *protocol.MsRequest) string {

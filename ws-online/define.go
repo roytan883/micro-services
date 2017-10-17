@@ -40,10 +40,10 @@ const (
 type gCmdType uint32
 
 const (
-	cWsConnectorActionPush       = "push"
-	cWsConnectorActionCount      = "count"
-	cWsConnectorActionMetrics    = "metrics"
-	cWsConnectorActionUserInfo   = "userInfo"
+	cWsConnectorActionPush       = "ws-connector.push"
+	cWsConnectorActionCount      = "ws-connector.count"
+	cWsConnectorActionMetrics    = "ws-connector.metrics"
+	cWsConnectorActionUserInfo   = "ws-connector.userInfo"
 	cWsConnectorInPush           = "ws-connector.in.push"
 	cWsConnectorInKickClient     = "ws-connector.in.kickClient"
 	cWsConnectorInKickUser       = "ws-connector.in.kickUser"
@@ -58,9 +58,13 @@ const (
 	cWsTokenActionVerify = "ws-token.verify"
 
 	//in: userIDStruct `json:"userID"` || out:onlineStatusStruct
-	cWsOnlineActionOnlineStatus = "onlineStatus"
-	cWsOnlineOutOnline          = "ws-online.out.online"
-	cWsOnlineOutOffline         = "ws-online.out.offline"
+	cWsOnlineActionOnlineStatus = "ws-online.onlineStatus"
+	//in: idsStruct `json:"ids"` || out:onlineStatusBulkStruct
+	cWsOnlineActionOnlineStatusBulk = "ws-online.onlineStatusBulk"
+	cWsOnlineOutOnline              = "ws-online.out.online"
+	cWsOnlineOutOffline             = "ws-online.out.offline"
+
+	cWsSenderActionSend = "ws-sender.send"
 )
 
 //ClientInfo ...
@@ -80,8 +84,17 @@ type userIDStruct struct {
 	UserID string `json:"userID"`
 }
 
+type idsStruct struct {
+	IDs interface{} `json:"ids"`
+}
+
 type onlineStatusStruct struct {
+	UserID          string        `json:"userID"`
 	IsShortOnline   bool          `json:"isShortOnline"`
 	IsRealOnline    bool          `json:"isRealOnline"`
 	RealOnlineInfos []*ClientInfo `json:"realOnlineInfos"`
+}
+
+type onlineStatusBulkStruct struct {
+	OnlineStatusBulk []*onlineStatusStruct `json:"onlineStatusBulk"`
 }
