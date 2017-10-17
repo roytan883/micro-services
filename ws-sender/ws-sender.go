@@ -80,6 +80,10 @@ func doSend(ids []string, data *pushMsgDataStruct) {
 		}, nil)
 		log.Info("doSend res = ", res)
 		log.Info("doSend err = ", err)
+		if err != nil {
+			log.Warn("run doSend, get ids OnlineStatusBulk err: ", err)
+			return
+		}
 		jsonByte, err := jsoniter.Marshal(res)
 		if err != nil {
 			log.Warn("run doSend, parse res to jsonByte error: ", err)
@@ -91,26 +95,44 @@ func doSend(ids []string, data *pushMsgDataStruct) {
 			log.Warn("run doSend, parse jsonByte to onlineStatusBulkStruct error: ", err)
 			return
 		}
-		log.Info("run doSend, onlineStatusBulkStruct = ", jsonObj)
-		wsConnectorNodes := make(map[string]struct{})
+		// log.Info("run doSend, onlineStatusBulkStruct = ", jsonObj)
+		wsConnectorNodes := make(map[string][]string)
 		for _, onlineStatus := range jsonObj.OnlineStatusBulk {
 			for _, clientInfo := range onlineStatus.RealOnlineInfos {
-				if _, ok := wsConnectorNodes[clientInfo.NodeID]; !ok {
-					wsConnectorNodes[clientInfo.NodeID] = struct{}{}
-					break
+				if clientInfo.IsOnline {
+					// log.Info("run doSend, IsOnline = ", clientInfo)
+					if nodes, ok := wsConnectorNodes[clientInfo.NodeID]; !ok {
+						wsConnectorNodes[clientInfo.NodeID] = make([]string, 0)
+						wsConnectorNodes[clientInfo.NodeID] = append(wsConnectorNodes[clientInfo.NodeID], clientInfo.UserID)
+					} else {
+						nodes = append(nodes, clientInfo.UserID)
+						wsConnectorNodes[clientInfo.NodeID] = nodes
+					}
+					localSaveSend(clientInfo.Cid, data.Mid, data)
+				} else {
+					cacheSaveSend(clientInfo.Cid, data.Mid, data)
 				}
 			}
 		}
 		log.Info("run doSend, wsConnectorNodes = ", wsConnectorNodes)
-		for nodeID := range wsConnectorNodes {
+		for nodeID, realIds := range wsConnectorNodes {
+			log.Infof("run doSend, nodeID[%s] realIds[%v]", nodeID, realIds)
 			pBroker.Call(cWsConnectorActionPush, &pushMsgStruct{
-				IDs:  ids,
+				IDs:  realIds,
 				Data: data,
 			}, &moleculer.CallOptions{
 				NodeID: nodeID,
 			})
 		}
 	}()
+}
+
+func localSaveSend(cid string, mid string, data *pushMsgDataStruct) {
+
+}
+
+func cacheSaveSend(cid string, mid string, data *pushMsgDataStruct) {
+
 }
 
 // func eventWsConnectorOutOffline(req *protocol.MsEvent) {

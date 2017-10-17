@@ -74,6 +74,7 @@ type ClientInfo struct {
 	Token          string `json:"token"`
 	ConnectTime    string `json:"connectTime"`
 	DisconnectTime string `json:"disconnectTime"`
+	IsOnline       bool   `json:"isOnline"`
 }
 
 type userIDStruct struct {

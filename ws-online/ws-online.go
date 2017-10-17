@@ -117,7 +117,9 @@ func getOnlineStatus(userID string) *onlineStatusStruct {
 			realOnlineInfos := make([]*ClientInfo, 0)
 			userInfoObj.Clients.Range(func(key, value interface{}) bool {
 				if clientInfo, ok := value.(*ClientInfo); ok {
-					onlineStatus.IsRealOnline = true
+					if clientInfo.IsOnline {
+						onlineStatus.IsRealOnline = true
+					}
 					realOnlineInfos = append(realOnlineInfos, clientInfo)
 				}
 				return true
@@ -215,6 +217,7 @@ func handlerClientInfo(req *protocol.MsEvent) {
 	log.Info("handlerClientInfo newUserInfo = ", newUserInfo)
 
 	isOnline := newUserInfo.LastOnlineTime.After(newUserInfo.LastOfflineTime)
+	clientInfo.IsOnline = isOnline
 
 	userInfo, isOld := gShortOnlineHub.Users.LoadOrStore(clientInfo.UserID, newUserInfo)
 	userInfoObj, ok := userInfo.(*UserInfo)
@@ -235,17 +238,29 @@ func handlerClientInfo(req *protocol.MsEvent) {
 		gShortOnlineHub.AbandonUsers.Delete(userInfoObj.UserID)
 	} else {
 		userInfoObj.LastOfflineTime = newUserInfo.LastOfflineTime
-		userInfoObj.Clients.Delete(clientInfo.Cid)
-		count := 0
-		userInfoObj.Clients.Range(func(key, value interface{}) bool {
-			count++
-			return true
+		userInfoObj.Clients.Store(clientInfo.Cid, clientInfo)
+		gShortOnlineHub.AbandonUsers.Store(clientInfo.Cid, &abandonStruct{
+			UserID:          userInfoObj.UserID,
+			Cid:             clientInfo.Cid,
+			LastOfflineTime: newUserInfo.LastOfflineTime,
 		})
-		if count < 1 {
-			userInfoObj.LastOfflineTime = newUserInfo.LastOfflineTime
-			gShortOnlineHub.AbandonUsers.Store(userInfoObj.UserID, userInfoObj.LastOfflineTime)
-
-		}
+		// userInfoObj.Clients.Delete(clientInfo.Cid)
+		// count := 0
+		// userInfoObj.Clients.Range(func(key, value interface{}) bool {
+		// 	if info, ok := value.(*ClientInfo); ok {
+		// 		if info.IsOnline {
+		// 			count++
+		// 		}
+		// 	}
+		// 	return true
+		// })
+		// if count < 1 {
+		// 	userInfoObj.LastOfflineTime = newUserInfo.LastOfflineTime
+		// 	gShortOnlineHub.AbandonUsers.Store(map[string]string{
+		// 		"UserID": userInfoObj.UserID,
+		// 		"Cid":    clientInfo.Cid,
+		// 	}, userInfoObj.LastOfflineTime)
+		// }
 	}
 }
 
@@ -263,23 +278,30 @@ func (h *ShortOnlineHub) runCheckAbandonUsers() {
 			case <-ticker.C:
 				now := time.Now()
 				gShortOnlineHub.AbandonUsers.Range(func(key, value interface{}) bool {
-					userID, ok := key.(string)
-					lastOfflineTime, ok2 := value.(time.Time)
-					if ok && ok2 {
-						diff := now.Sub(lastOfflineTime)
-						// if diff > time.Second*5 {
+					// userID, ok := key.(string)
+					abandon, ok := value.(*abandonStruct)
+					if ok {
+						diff := now.Sub(abandon.LastOfflineTime)
+						// if diff > time.Second*10 {
 						if diff > (time.Minute * time.Duration(gAbandonMinutes)) {
-							log.Warn("Abandon User: ", userID)
-							gShortOnlineHub.AbandonUsers.Delete(userID)
-							userInfo, ok := gShortOnlineHub.Users.Load(userID)
+							log.Warn("Abandon User Cid: ", abandon.Cid)
+							gShortOnlineHub.AbandonUsers.Delete(abandon.Cid)
+							userInfo, ok := gShortOnlineHub.Users.Load(abandon.UserID)
 							if ok {
 								userInfoObj, ok := userInfo.(*UserInfo)
 								if ok {
-									pBroker.Broadcast(cWsOnlineOutOffline, userInfoObj.LastClientInfo)
+									userInfoObj.Clients.Delete(abandon.Cid)
+									hasOtherClients := false
+									userInfoObj.Clients.Range(func(key, value interface{}) bool {
+										hasOtherClients = true
+										return false
+									})
+									if !hasOtherClients {
+										gShortOnlineHub.Users.Delete(abandon.UserID)
+										pBroker.Broadcast(cWsOnlineOutOffline, userInfoObj.LastClientInfo)
+									}
 								}
 							}
-							gShortOnlineHub.Users.Delete(userID)
-
 						}
 					}
 					return true

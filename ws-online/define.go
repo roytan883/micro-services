@@ -78,6 +78,7 @@ type ClientInfo struct {
 	Token          string `json:"token"`
 	ConnectTime    string `json:"connectTime"`
 	DisconnectTime string `json:"disconnectTime"`
+	IsOnline       bool   `json:"isOnline"`
 }
 
 type userIDStruct struct {
@@ -97,4 +98,10 @@ type onlineStatusStruct struct {
 
 type onlineStatusBulkStruct struct {
 	OnlineStatusBulk []*onlineStatusStruct `json:"onlineStatusBulk"`
+}
+
+type abandonStruct struct {
+	UserID          string
+	Cid             string
+	LastOfflineTime time.Time
 }
