@@ -42,6 +42,7 @@ const (
 type gCmdType uint32
 
 const (
+	cWsConnectorActionPush       = "push"
 	cWsConnectorActionCount      = "count"
 	cWsConnectorActionMetrics    = "metrics"
 	cWsConnectorActionUserInfo   = "userInfo"
@@ -106,6 +107,19 @@ func (v *verifyTokenStruct) String() string {
 
 type verifyTokenResultStruct struct {
 	Invalid bool `json:"invalid"` //GO default bool is false, so use invalid == true to detect invalid token
+}
+
+//ClientInfo ...
+type ClientInfo struct {
+	NodeID         string `json:"nodeID"`
+	Cid            string `json:"cid"`
+	UserID         string `json:"userID"`
+	Platform       string `json:"platform"`
+	Version        string `json:"version"`
+	Timestamp      string `json:"timestamp"`
+	Token          string `json:"token"`
+	ConnectTime    string `json:"connectTime"`
+	DisconnectTime string `json:"disconnectTime"`
 }
 
 type metricsStruct struct {

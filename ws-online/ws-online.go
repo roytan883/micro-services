@@ -1,9 +1,15 @@
 package main
 
 import (
+	"errors"
+	"strconv"
+	"time"
 
 	// _ "net/http/pprof" //https://localhost:12020/debug/pprof
 
+	"sync"
+
+	jsoniter "github.com/json-iterator/go"
 	moleculer "github.com/roytan883/moleculer-go"
 	"github.com/roytan883/moleculer-go/protocol"
 )
@@ -18,29 +24,250 @@ func createMoleculerService() moleculer.Service {
 	}
 
 	//init actions handlers
-	gMoleculerService.Actions[cWsOnlineActionUserInfo] = actionUserInfo
+	gMoleculerService.Actions[cWsOnlineActionIsShortOnline] = actionIsShortOnline
+	gMoleculerService.Actions[cWsOnlineActionIsRealOnline] = actionIsRealOnline
+	gMoleculerService.Actions[cWsOnlineActionRealOnlineInfos] = actionRealOnlineInfos
 
 	//init listen events handlers
 	gMoleculerService.Events[cWsConnectorOutOnline] = eventWsConnectorOutOnline
 	gMoleculerService.Events[cWsConnectorOutOffline] = eventWsConnectorOutOffline
 	gMoleculerService.Events[cWsConnectorOutSyncUsersInfo] = eventWsConnectorOutSyncUsersInfo
 
+	gShortOnlineHub = &ShortOnlineHub{
+		Users:        &sync.Map{},
+		AbandonUsers: &sync.Map{},
+		hubClosed:    make(chan int, 1),
+	}
+	gShortOnlineHub.runCheckAbandonUsers()
+
 	return *gMoleculerService
 }
 
-func actionUserInfo(req *protocol.MsRequest) (interface{}, error) {
-	log.Info("run actionUserInfo")
-	return nil, nil
+func actionIsShortOnline(req *protocol.MsRequest) (interface{}, error) {
+
+	userID := parseUserID(req)
+	if len(userID) < 1 {
+		return nil, errors.New("Parse userID error")
+	}
+
+	log.Info("run actionIsShortOnline: ", userID)
+
+	if _, ok := gShortOnlineHub.Users.Load(userID); ok {
+		return &isShortOnlineStruct{IsShortOnline: true}, nil
+	}
+	return &isShortOnlineStruct{IsShortOnline: false}, nil
+}
+
+func actionIsRealOnline(req *protocol.MsRequest) (interface{}, error) {
+	userID := parseUserID(req)
+	if len(userID) < 1 {
+		return nil, errors.New("Parse userID error")
+	}
+
+	log.Info("run actionIsRealOnline: ", userID)
+
+	if userInfo, ok := gShortOnlineHub.Users.Load(userID); ok {
+		userInfoObj, ok := userInfo.(*UserInfo)
+		if ok {
+			count := 0
+			userInfoObj.Clients.Range(func(key, value interface{}) bool {
+				count++
+				return true
+			})
+			if count > 0 {
+				return &isRealOnlineStruct{IsRealOnline: true}, nil
+
+			}
+		}
+	}
+	return &isRealOnlineStruct{IsRealOnline: false}, nil
+}
+
+func actionRealOnlineInfos(req *protocol.MsRequest) (interface{}, error) {
+
+	userID := parseUserID(req)
+	if len(userID) < 1 {
+		return nil, errors.New("Parse userID error")
+	}
+
+	log.Info("run actionRealOnlineInfos: ", userID)
+
+	if userInfo, ok := gShortOnlineHub.Users.Load(userID); ok {
+		userInfoObj, ok := userInfo.(*UserInfo)
+		if ok {
+			realOnlineInfos := make([]*ClientInfo, 0)
+			userInfoObj.Clients.Range(func(key, value interface{}) bool {
+				if clientInfo, ok := value.(*ClientInfo); ok {
+					realOnlineInfos = append(realOnlineInfos, clientInfo)
+				}
+				return true
+			})
+			return &realOnlineInfosStruct{RealOnlineInfos: realOnlineInfos}, nil
+		}
+	}
+	return &realOnlineInfosStruct{RealOnlineInfos: make([]*ClientInfo, 0)}, nil
+
+}
+
+func parseUserID(req *protocol.MsRequest) string {
+	jsonByte, err := jsoniter.Marshal(req.Params)
+	if err != nil {
+		log.Warn("run parseUserID, parse req.Data to jsonByte error: ", err)
+		return ""
+	}
+	jsonObj := &userIDStruct{}
+	err = jsoniter.Unmarshal(jsonByte, jsonObj)
+	if err != nil {
+		log.Warn("run parseUserID, parse req.Data to jsonObj userIDStruct error: ", err)
+		return ""
+	}
+	return jsonObj.UserID
 }
 
 func eventWsConnectorOutOffline(req *protocol.MsEvent) {
 	log.Info("run eventWsConnectorOutOffline")
+	handlerClientInfo(req)
 }
 
 func eventWsConnectorOutOnline(req *protocol.MsEvent) {
 	log.Info("run eventWsConnectorOutOnline")
+	handlerClientInfo(req)
 }
 
 func eventWsConnectorOutSyncUsersInfo(req *protocol.MsEvent) {
 	log.Info("run eventWsConnectorOutSyncUsersInfo")
+	handlerClientInfo(req)
+}
+
+//UserInfo ...
+type UserInfo struct {
+	UserID          string
+	LastOnlineTime  time.Time
+	LastOfflineTime time.Time
+	LastClientInfo  *ClientInfo
+	Clients         *sync.Map //~= sync.Map[string(Cid)]*ClientInfo //only real online clientInfos
+
+}
+
+var gShortOnlineHub *ShortOnlineHub
+
+//ShortOnlineHub ...
+type ShortOnlineHub struct {
+	Users        *sync.Map //~= sync.Map[string(UserID)]*UserInfo
+	AbandonUsers *sync.Map //~= sync.Map[string(UserID)]time.Time(UserInfo.LastOfflineTime)
+	hubClosed    chan int
+}
+
+func handlerClientInfo(req *protocol.MsEvent) {
+	jsonByte, err := jsoniter.Marshal(req.Data)
+	if err != nil {
+		log.Warn("handlerClientInfo, parse req.Data to jsonByte error: ", err)
+		return
+	}
+	clientInfo := &ClientInfo{}
+	err = jsoniter.Unmarshal(jsonByte, clientInfo)
+	if err != nil {
+		log.Warn("handlerClientInfo, parse req.Data to ClientInfo error: ", err)
+		return
+	}
+	if clientInfo == nil || len(clientInfo.NodeID) < 1 || len(clientInfo.Cid) < 1 || len(clientInfo.UserID) < 1 || len(clientInfo.ConnectTime) < 1 || len(clientInfo.DisconnectTime) < 1 {
+		return
+	}
+
+	onlineTimestamp, err := strconv.Atoi(clientInfo.ConnectTime)
+	if err != nil {
+		log.Warn("handlerClientInfo, parseclientInfo.ConnectTime error: ", err)
+		return
+	}
+	offlineTimestamp, err := strconv.Atoi(clientInfo.DisconnectTime)
+	if err != nil {
+		log.Warn("handlerClientInfo, parseclientInfo.ConnectTime error: ", err)
+		return
+	}
+	onlineTime := time.Unix(int64(onlineTimestamp/1e3), int64(onlineTimestamp%1e3*1e6))
+	offlineTime := time.Unix(int64(offlineTimestamp/1e3), int64(offlineTimestamp%1e3*1e6))
+
+	newUserInfo := &UserInfo{
+		UserID:          clientInfo.UserID,
+		LastOnlineTime:  onlineTime,
+		LastOfflineTime: offlineTime,
+		Clients:         &sync.Map{},
+	}
+	log.Info("handlerClientInfo newUserInfo = ", newUserInfo)
+
+	userInfo, isOld := gShortOnlineHub.Users.LoadOrStore(clientInfo.UserID, newUserInfo)
+	userInfoObj, ok := userInfo.(*UserInfo)
+	if !ok {
+		log.Warn("handlerClientInfo, LoadOrStore cast to userInfo error")
+		return
+	}
+
+	if !isOld {
+		pBroker.Broadcast(cWsOnlineOutOnline, clientInfo)
+	}
+
+	userInfoObj.LastClientInfo = clientInfo
+
+	isOnline := newUserInfo.LastOnlineTime.After(newUserInfo.LastOfflineTime)
+
+	if isOnline {
+		userInfoObj.LastOnlineTime = newUserInfo.LastOnlineTime
+		userInfoObj.Clients.Store(clientInfo.Cid, clientInfo)
+		gShortOnlineHub.AbandonUsers.Delete(userInfoObj.UserID)
+	} else {
+		userInfoObj.LastOfflineTime = newUserInfo.LastOfflineTime
+		userInfoObj.Clients.Delete(clientInfo.Cid)
+		count := 0
+		userInfoObj.Clients.Range(func(key, value interface{}) bool {
+			count++
+			return true
+		})
+		if count < 1 {
+			userInfoObj.LastOfflineTime = newUserInfo.LastOfflineTime
+			gShortOnlineHub.AbandonUsers.Store(userInfoObj.UserID, userInfoObj.LastOfflineTime)
+
+		}
+	}
+}
+
+//Close ...
+func (h *ShortOnlineHub) Close() {
+	h.hubClosed <- 1
+}
+
+func (h *ShortOnlineHub) runCheckAbandonUsers() {
+	go func() {
+		ticker := time.NewTicker(time.Minute * 1)
+		// ticker := time.NewTicker(time.Second * 1)
+		for {
+			select {
+			case <-ticker.C:
+				now := time.Now()
+				gShortOnlineHub.AbandonUsers.Range(func(key, value interface{}) bool {
+					userID, ok := key.(string)
+					lastOfflineTime, ok2 := value.(time.Time)
+					if ok && ok2 {
+						diff := now.Sub(lastOfflineTime)
+						// if diff > time.Second*5 {
+						if diff > (time.Minute * time.Duration(gAbandonMinutes)) {
+							log.Warn("Abandon User: ", userID)
+							gShortOnlineHub.AbandonUsers.Delete(userID)
+							userInfo, ok := gShortOnlineHub.Users.Load(userID)
+							if ok {
+								userInfoObj, ok := userInfo.(*UserInfo)
+								if ok {
+									pBroker.Broadcast(cWsOnlineOutOffline, userInfoObj.LastClientInfo)
+								}
+							}
+							gShortOnlineHub.Users.Delete(userID)
+
+						}
+					}
+					return true
+				})
+			case <-h.hubClosed:
+				return
+			}
+		}
+	}()
 }

@@ -125,18 +125,30 @@ func inMsgHandler(data interface{}) {
 
 	}
 
+	info := &ClientInfo{
+		NodeID:         gNodeID,
+		Cid:            m.c.Cid,
+		UserID:         m.c.UserID,
+		Platform:       m.c.Platform,
+		Version:        m.c.Version,
+		Timestamp:      m.c.Timestamp,
+		Token:          m.c.Token,
+		ConnectTime:    m.c.ConnectTime,
+		DisconnectTime: m.c.DisconnectTime,
+	}
+
 	if m.t == syncUsersInfo {
-		pBroker.Broadcast(cWsConnectorOutSyncUsersInfo, m.c)
+		pBroker.Broadcast(cWsConnectorOutSyncUsersInfo, info)
 		return
 	}
 
 	if m.t == clientOnline {
-		pBroker.Broadcast(cWsConnectorOutOnline, m.c)
+		pBroker.Broadcast(cWsConnectorOutOnline, info)
 		return
 	}
 
 	if m.t == clientOffline {
-		pBroker.Broadcast(cWsConnectorOutOffline, m.c)
+		pBroker.Broadcast(cWsConnectorOutOffline, info)
 		return
 	}
 

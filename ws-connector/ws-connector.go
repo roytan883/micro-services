@@ -31,6 +31,7 @@ func createMoleculerService() moleculer.Service {
 	}
 
 	//init actions handlers
+	gMoleculerService.Actions[cWsConnectorActionPush] = actionPush
 	gMoleculerService.Actions[cWsConnectorActionCount] = actionCount
 	gMoleculerService.Actions[cWsConnectorActionMetrics] = actionMetrics
 	gMoleculerService.Actions[cWsConnectorActionUserInfo] = actionUserInfo
@@ -124,6 +125,50 @@ func eventInKickUser(req *protocol.MsEvent) {
 	if len(jsonObj.UserID) > 0 {
 		gHub.kickUser(jsonObj.UserID)
 	}
+}
+
+func actionPush(req *protocol.MsRequest) (interface{}, error) {
+
+	log.Info("run actionPush, req.Params = ", req.Params)
+	jsonString, err := jsoniter.Marshal(req.Params)
+	if err != nil {
+		log.Warn("run actionPush, parse req.Data to jsonString error: ", err)
+		return nil, err
+	}
+	// log.Info("jsonString = ", string(jsonString))
+	// jsonString = []byte("{\"ids\":[\"uaaa\",\"bbb\"],\"data\":\"abc123\"}")
+	// log.Info("jsonString = ", string(jsonString))
+	jsonObj := &pushMsgStruct{}
+	err = jsoniter.Unmarshal(jsonString, jsonObj)
+	if err != nil {
+		log.Warn("run eventInPush, parse req.Data to jsonObj error: ", err)
+		return nil, err
+	}
+	log.Info("run eventInPush, jsonObj = ", jsonObj)
+
+	// log.Info("type:", reflect.TypeOf(jsonObj.IDs))
+
+	switch jsonObj.IDs.(type) {
+	case []string:
+		gHub.sendMessage(jsonObj.IDs.([]string), jsonObj.Data)
+	case []interface{}:
+		ids := make([]string, 0)
+		_ids := jsonObj.IDs.([]interface{})
+		for _, v := range _ids {
+			if sv, ok := v.(string); ok {
+				ids = append(ids, sv)
+			}
+		}
+		gHub.sendMessage(ids, jsonObj.Data)
+	case string:
+		ids := strings.Split(jsonObj.IDs.(string), ",")
+		gHub.sendMessage(ids, jsonObj.Data)
+	default:
+		log.Info("can't parse  jsonObj.IDs")
+		return nil, errors.New("can't parse ids")
+	}
+
+	return nil, nil
 }
 
 //if only userID, then push to all platfrom of userID

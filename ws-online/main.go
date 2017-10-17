@@ -106,7 +106,7 @@ var upgrader = websocket.Upgrader{
 // ws-connector -s nats://192.168.1.69:12008
 // ws-connector -s nats://127.0.0.1:4222
 func usage() {
-	log.Fatalf("Usage: ws-online [-s The nats server URLs (nats://192.168.1.69:12008)] [-i nodeID (0)] [-d debug (0)] \n")
+	log.Fatalf("Usage: ws-online [-s The nats server URLs (nats://192.168.1.69:12008)] [-i nodeID (0)] [-d debug (0)] [-d AbandonMinutes (30)] \n")
 }
 
 var gCloseChan chan int
@@ -120,6 +120,7 @@ func main() {
 
 	_gUrls := flag.String("s", nats.DefaultURL, "The nats server URLs (separated by comma, default localhost:4222)")
 	_gID := flag.Int("i", 0, "ID of the service on this machine")
+	_gAbandonMinutes := flag.Int("a", 30, "Abandon offline user after 30 minutes")
 	_gIsDebug := flag.Int("d", 0, "is debug")
 	// _gTestCount := flag.Int("c", 1, "test send message RPS")
 	// _gTestUserName := flag.String("u", "gotest-user-", "TestUserName prefix")
@@ -129,6 +130,7 @@ func main() {
 
 	gUrls = *_gUrls
 	gID = *_gID
+	gAbandonMinutes = *_gAbandonMinutes
 	gIsDebug = *_gIsDebug
 	// gTestCount = *_gTestCount
 	// gTestUserName = *_gTestUserName
@@ -173,6 +175,7 @@ func main() {
 func cleanupFunc() {
 	log.Infof("Hang on! %s is closing ...", AppName)
 	log.Warn("=================== exit start =================== ")
+	gShortOnlineHub.Close()
 	time.Sleep(time.Second * 1)
 	log.Warn("=================== exit end   =================== ")
 	log.Infof("%s is closed", AppName)

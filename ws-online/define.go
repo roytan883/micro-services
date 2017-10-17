@@ -19,6 +19,7 @@ var gIsDebug int
 var gTestCount int
 var gTestUserName string
 var gTestUserNameRange int
+var gAbandonMinutes int
 var gNodeID = AppName
 
 const (
@@ -38,6 +39,7 @@ const (
 type gCmdType uint32
 
 const (
+	cWsConnectorActionPush       = "push"
 	cWsConnectorActionCount      = "count"
 	cWsConnectorActionMetrics    = "metrics"
 	cWsConnectorActionUserInfo   = "userInfo"
@@ -54,35 +56,41 @@ const (
 
 	cWsTokenActionVerify = "ws-token.verify"
 
-	cWsOnlineActionUserInfo = "userInfo"
-	cWsOnlineOutOnline      = "ws-online.out.online"
-	cWsOnlineOutOffline     = "ws-online.out.offline"
+	//in: userIDStruct `json:"userID"` || out:isShortOnlineStruct `json:"isShortOnline"`
+	cWsOnlineActionIsShortOnline = "isShortOnline"
+	//in: userIDStruct `json:"userID"` || out:isRealOnlineStruct `json:"isRealOnline"`
+	cWsOnlineActionIsRealOnline = "isRealOnline"
+	//in: userIDStruct `json:"userID"` || out:realOnlineInfosStruct `json:"realOnlineInfos"`
+	cWsOnlineActionRealOnlineInfos = "realOnlineInfos"
+	cWsOnlineOutOnline             = "ws-online.out.online"
+	cWsOnlineOutOffline            = "ws-online.out.offline"
 )
 
-type ackStruct struct {
-	Aid    string `json:"aid"`
-	Cid    string `json:"cid"`
+//ClientInfo ...
+type ClientInfo struct {
+	NodeID         string `json:"nodeID"`
+	Cid            string `json:"cid"`
+	UserID         string `json:"userID"`
+	Platform       string `json:"platform"`
+	Version        string `json:"version"`
+	Timestamp      string `json:"timestamp"`
+	Token          string `json:"token"`
+	ConnectTime    string `json:"connectTime"`
+	DisconnectTime string `json:"disconnectTime"`
+}
+
+type userIDStruct struct {
 	UserID string `json:"userID"`
 }
 
-type pushMsgStruct struct {
-	IDs  interface{} `json:"ids"`
-	Data interface{} `json:"data"`
+type isShortOnlineStruct struct {
+	IsShortOnline bool `json:"isShortOnline"`
 }
 
-type pushMsgDataStruct struct {
-	Mid string      `json:"mid"`
-	Msg interface{} `json:"msg"`
+type isRealOnlineStruct struct {
+	IsRealOnline bool `json:"isRealOnline"`
 }
 
-type kickClientStruct struct {
-	Cid string `json:"cid"`
-}
-
-type kickUserStruct struct {
-	UserID string `json:"userID"`
-}
-
-type getUserOnlineInfoStruct struct {
-	UserID string `json:"userID"`
+type realOnlineInfosStruct struct {
+	RealOnlineInfos []*ClientInfo `json:"realOnlineInfos"`
 }
