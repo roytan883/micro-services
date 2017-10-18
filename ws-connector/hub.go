@@ -73,6 +73,8 @@ func (it inMsgType) String() string {
 		return "clientMsg"
 	case syncUsersInfo:
 		return "syncUsersInfo"
+	case clientOnline:
+		return "clientOnline"
 	case clientOffline:
 		return "clientOffline"
 	default:

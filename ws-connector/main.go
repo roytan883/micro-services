@@ -115,6 +115,7 @@ func main() {
 	_gRPS := flag.Int("r", 2500, "max request per second")
 	_gMaxClients := flag.Int("m", 500000, "max clients")
 	_gIsDebug := flag.Int("d", 0, "is debug")
+	_gFastExit := flag.Int("f", 0, "fast exit")
 	flag.Usage = usage
 	flag.Parse()
 
@@ -124,6 +125,7 @@ func main() {
 	gRPS = *_gRPS
 	gMaxClients = *_gMaxClients
 	gIsDebug = *_gIsDebug
+	gFastExit = *_gFastExit
 
 	setDebug()
 
@@ -172,6 +174,10 @@ func main() {
 }
 
 func cleanupFunc() {
+	if gFastExit > 0 {
+		log.Warn("=================== fast exit =================== ")
+		os.Exit(0)
+	}
 	log.Infof("Hang on! %s is closing ...", AppName)
 	log.Warn("=================== exit start =================== ")
 	if pBroker != nil {
