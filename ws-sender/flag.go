@@ -48,6 +48,7 @@ func initFlag() {
 func printFlag() {
 	log.Warnf("gIsDebug : %v\n", gIsDebug)
 	log.Warnf("gWriteLogToFile : %v\n", gWriteLogToFile)
+	log.Warnf("gFastExit : %v\n", gFastExit)
 	log.Warnf("gNodeID : %v\n", gNodeID)
 	log.Warnf("gUrls : %v\n", gUrls)
 	log.Warnf("gNatsHosts : %v\n", gNatsHosts)
