@@ -98,16 +98,8 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-//TLS:
-//openssl genrsa -out key_go.pem 2048
-//openssl req -new -x509 -key key_go.pem -out cert_go.pem -days 36500
-
-// NOTE: Use tls scheme for TLS, e.g. nats-req -s tls://demo.nats.io:4443 foo hello
-// go run .\define.go .\main.go .\ws-connector.go .\hub.go .\client.go .\pool.go -s nats://192.168.1.69:12008
-// ws-connector -s nats://192.168.1.69:12008
-// ws-connector -s nats://127.0.0.1:4222
 func usage() {
-	log.Fatalf("Usage: ws-connector-test [-s The nats server URLs (nats://192.168.1.69:12008)] [-d debug (0)] [-c TestCount (1)] [-u TestUserName (gotest-user-)] [-ur TestUserName range (9999)]\n")
+	log.Fatalf("Usage: ws-connector-test [-s The nats server URLs (nats://192.168.1.69:12008)] [-d debug (0)] [-c TestCount RPS (1)] [-u TestUserName (gotest-user-)] [-ur TestUserName range (9999)]\n")
 }
 
 var gCloseChan chan int
