@@ -15,3 +15,10 @@ broker.start()
 setTimeout(function () {
   broker.repl();
 }, 1000)
+
+/* some test command 
+call ws-connector.metrics
+call ws-online.onlineStatus --userID gotest-user-0
+call ws-online.onlineStatusBulk --ids gotest-user-0,gotest-user-1
+call ws-sender.send --ids gotest-user-0,gotest-user-1 --data.mid m123 --data.msg.a abc --data.msg.b 111 --data.msg.c true
+*/

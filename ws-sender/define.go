@@ -16,6 +16,7 @@ var gNatsHosts []string
 var gPort int
 var gID int
 var gIsDebug int
+var gWriteLogToFile int
 var gNodeID = AppName
 var gWaitAckSeconds int
 

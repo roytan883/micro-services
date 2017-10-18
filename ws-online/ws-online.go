@@ -47,6 +47,7 @@ func createMoleculerService() moleculer.Service {
 	return *gMoleculerService
 }
 
+//mol $ call ws-online.onlineStatus --userID gotest-user-0
 func actionOnlineStatus(req *protocol.MsRequest) (interface{}, error) {
 
 	userID := parseUserID(req)
@@ -59,6 +60,7 @@ func actionOnlineStatus(req *protocol.MsRequest) (interface{}, error) {
 	return getOnlineStatus(userID), nil
 }
 
+//mol $ call ws-online.onlineStatusBulk --ids gotest-user-0,gotest-user-1
 func actionOnlineStatusBulk(req *protocol.MsRequest) (interface{}, error) {
 
 	jsonByte, err := jsoniter.Marshal(req.Params)

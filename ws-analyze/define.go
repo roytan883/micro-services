@@ -16,29 +16,8 @@ var gNatsHosts []string
 var gPort int
 var gID int
 var gIsDebug int
-var gWriteLogToFile int
-var gTestCount int
-var gTestUserName string
-var gTestUserNameRange int
-var gAbandonMinutes int
-var gSyncDelaySeconds int
 var gNodeID = AppName
-
-const (
-	// Time allowed to write a message to the peer.
-	writeWait = 10 * time.Second
-
-	// Time allowed to read the next pong message from the peer.
-	pongWait = 200 * time.Second * 1
-
-	// Send pings to peer with this period. Must be less than pongWait.
-	pingPeriod = (pongWait * 9) / 10
-
-	// Maximum message size allowed from peer.
-	// maxMessageSize = 1024 * 4
-)
-
-type gCmdType uint32
+var gWaitAckSeconds int
 
 const (
 	cWsConnectorActionPush       = "ws-connector.push"
@@ -67,6 +46,22 @@ const (
 
 	cWsSenderActionSend = "ws-sender.send"
 )
+
+type ackStruct struct {
+	Aid    string `json:"aid"`
+	Cid    string `json:"cid"`
+	UserID string `json:"userID"`
+}
+
+type pushMsgStruct struct {
+	IDs  interface{}        `json:"ids"`
+	Data *pushMsgDataStruct `json:"data"`
+}
+
+type pushMsgDataStruct struct {
+	Mid string      `json:"mid"`
+	Msg interface{} `json:"msg"`
+}
 
 //ClientInfo ...
 type ClientInfo struct {
@@ -101,8 +96,10 @@ type onlineStatusBulkStruct struct {
 	OnlineStatusBulk []*onlineStatusStruct `json:"onlineStatusBulk"`
 }
 
-type abandonStruct struct {
-	UserID          string
-	Cid             string
-	LastOfflineTime time.Time
+type waitAckStruct struct {
+	UserID   string
+	Cid      string
+	Mid      string
+	SendTime time.Time
+	Data     *pushMsgDataStruct
 }

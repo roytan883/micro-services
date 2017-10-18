@@ -42,6 +42,7 @@ func createMoleculerService() moleculer.Service {
 	return *gMoleculerService
 }
 
+//mol $ call ws-sender.send --ids gotest-user-0,gotest-user-1 --data.mid m123 --data.msg.a abc --data.msg.b 111 --data.msg.c true
 func actionSend(req *protocol.MsRequest) (interface{}, error) {
 
 	log.Info("run actionSend, req.Params = ", req.Params)

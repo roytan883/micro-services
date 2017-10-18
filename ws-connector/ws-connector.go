@@ -53,6 +53,7 @@ func actionCount(req *protocol.MsRequest) (interface{}, error) {
 	return count, nil
 }
 
+//mol $ call ws-connector.metrics
 func actionMetrics(req *protocol.MsRequest) (interface{}, error) {
 	log.Info("run actionMetrics")
 	metrics := gHub.metrics()

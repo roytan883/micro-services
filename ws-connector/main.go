@@ -37,58 +37,63 @@ func initLog() {
 }
 
 func setDebug() {
-	os.Mkdir("logs", os.ModePerm)
 	if gIsDebug > 0 {
 		log.SetLevel(logrus.DebugLevel)
-		debugLogPath := "logs/debug.log"
-		warnLogPath := "logs/warn.log"
-		debugLogWriter, err := rotatelogs.New(
-			debugLogPath+".%Y%m%d%H%M%S",
-			rotatelogs.WithLinkName(debugLogPath),
-			rotatelogs.WithMaxAge(time.Hour*24*7),
-			rotatelogs.WithRotationTime(time.Hour*24),
-		)
-		if err != nil {
-			log.Printf("failed to create rotatelogs debugLogWriter : %s", err)
-			return
+		if gWriteLogToFile > 0 {
+			os.Mkdir("logs", os.ModePerm)
+			debugLogPath := "logs/debug.log"
+			warnLogPath := "logs/warn.log"
+			debugLogWriter, err := rotatelogs.New(
+				debugLogPath+".%Y%m%d%H%M%S",
+				rotatelogs.WithLinkName(debugLogPath),
+				rotatelogs.WithMaxAge(time.Hour*24*7),
+				rotatelogs.WithRotationTime(time.Hour*24),
+			)
+			if err != nil {
+				log.Printf("failed to create rotatelogs debugLogWriter : %s", err)
+				return
+			}
+			warnLogWriter, err := rotatelogs.New(
+				warnLogPath+".%Y%m%d%H%M%S",
+				rotatelogs.WithLinkName(warnLogPath),
+				rotatelogs.WithMaxAge(time.Hour*24*7),
+				rotatelogs.WithRotationTime(time.Hour*24),
+			)
+			if err != nil {
+				log.Printf("failed to create rotatelogs warnLogWriter : %s", err)
+				return
+			}
+			log.Hooks.Add(lfshook.NewHook(lfshook.WriterMap{
+				logrus.DebugLevel: debugLogWriter,
+				logrus.InfoLevel:  debugLogWriter,
+				logrus.WarnLevel:  warnLogWriter,
+				logrus.ErrorLevel: warnLogWriter,
+				logrus.FatalLevel: warnLogWriter,
+				logrus.PanicLevel: warnLogWriter,
+			}))
 		}
-		warnLogWriter, err := rotatelogs.New(
-			warnLogPath+".%Y%m%d%H%M%S",
-			rotatelogs.WithLinkName(warnLogPath),
-			rotatelogs.WithMaxAge(time.Hour*24*7),
-			rotatelogs.WithRotationTime(time.Hour*24),
-		)
-		if err != nil {
-			log.Printf("failed to create rotatelogs warnLogWriter : %s", err)
-			return
-		}
-		log.Hooks.Add(lfshook.NewHook(lfshook.WriterMap{
-			logrus.DebugLevel: debugLogWriter,
-			logrus.InfoLevel:  debugLogWriter,
-			logrus.WarnLevel:  warnLogWriter,
-			logrus.ErrorLevel: warnLogWriter,
-			logrus.FatalLevel: warnLogWriter,
-			logrus.PanicLevel: warnLogWriter,
-		}))
 	} else {
 		log.SetLevel(logrus.WarnLevel)
-		warnLogPath := "logs/warn.log"
-		warnLogWriter, err := rotatelogs.New(
-			warnLogPath+".%Y%m%d%H%M%S",
-			rotatelogs.WithLinkName(warnLogPath),
-			rotatelogs.WithMaxAge(time.Hour*24*7),
-			rotatelogs.WithRotationTime(time.Hour*24),
-		)
-		if err != nil {
-			log.Printf("failed to create rotatelogs warnLogWriter : %s", err)
-			return
+		if gWriteLogToFile > 0 {
+			os.Mkdir("logs", os.ModePerm)
+			warnLogPath := "logs/warn.log"
+			warnLogWriter, err := rotatelogs.New(
+				warnLogPath+".%Y%m%d%H%M%S",
+				rotatelogs.WithLinkName(warnLogPath),
+				rotatelogs.WithMaxAge(time.Hour*24*7),
+				rotatelogs.WithRotationTime(time.Hour*24),
+			)
+			if err != nil {
+				log.Printf("failed to create rotatelogs warnLogWriter : %s", err)
+				return
+			}
+			log.Hooks.Add(lfshook.NewHook(lfshook.WriterMap{
+				logrus.WarnLevel:  warnLogWriter,
+				logrus.ErrorLevel: warnLogWriter,
+				logrus.FatalLevel: warnLogWriter,
+				logrus.PanicLevel: warnLogWriter,
+			}))
 		}
-		log.Hooks.Add(lfshook.NewHook(lfshook.WriterMap{
-			logrus.WarnLevel:  warnLogWriter,
-			logrus.ErrorLevel: warnLogWriter,
-			logrus.FatalLevel: warnLogWriter,
-			logrus.PanicLevel: warnLogWriter,
-		}))
 	}
 }
 
@@ -101,10 +106,16 @@ func setDebug() {
 // ws-connector -s nats://192.168.1.69:12008
 // ws-connector -s nats://127.0.0.1:4222
 func usage() {
-	log.Fatalf("Usage: ws-connector [-s server (%s)] [-p port (12020)] [-i nodeID (0)] [-d debug (0)] [-r RPS (2500)] [-m MaxClients (500000 (20G) //400MB~10K user)] \n", nats.DefaultURL)
+	log.Fatalf("Usage: ws-connector [-s server (%s)] [-p port (12020)] [-i nodeID (0)] [-d debug (0)] [-r RPS (2500)] [-m MaxClients (500000 (20G) //400MB~10K user)] [-fe FastExit (0)] [-wf WriteLogToFile (0)]\n", nats.DefaultURL)
 }
 
-//debug: go run .\main.go .\ws-connector.go
+/*
+pro:
+./ws-connector -s nats://127.0.0.1:12008 -p 12020 -i 0 -d 0 -fe 0 -wf 1
+dev:
+./ws-connector -s nats://127.0.0.1:12008 -p 12020 -i 0 -d 1 -fe 1 -wf 0
+./ws-connector -s nats://127.0.0.1:12008 -p 12021 -i 1 -d 1 -fe 1 -wf 0
+*/
 func main() {
 	closer.Bind(cleanupFunc)
 
@@ -115,7 +126,8 @@ func main() {
 	_gRPS := flag.Int("r", 2500, "max request per second")
 	_gMaxClients := flag.Int("m", 500000, "max clients")
 	_gIsDebug := flag.Int("d", 0, "is debug")
-	_gFastExit := flag.Int("f", 0, "fast exit")
+	_gFastExit := flag.Int("fe", 0, "fast exit")
+	_gWriteLogToFile := flag.Int("wf", 0, "write log to file")
 	flag.Usage = usage
 	flag.Parse()
 
@@ -126,6 +138,7 @@ func main() {
 	gMaxClients = *_gMaxClients
 	gIsDebug = *_gIsDebug
 	gFastExit = *_gFastExit
+	gWriteLogToFile = *_gWriteLogToFile
 
 	setDebug()
 

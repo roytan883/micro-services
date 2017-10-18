@@ -37,58 +37,63 @@ func initLog() {
 }
 
 func setDebug() {
-	os.Mkdir("logs", os.ModePerm)
 	if gIsDebug > 0 {
 		log.SetLevel(logrus.DebugLevel)
-		debugLogPath := "logs/debug.log"
-		warnLogPath := "logs/warn.log"
-		debugLogWriter, err := rotatelogs.New(
-			debugLogPath+".%Y%m%d%H%M%S",
-			rotatelogs.WithLinkName(debugLogPath),
-			rotatelogs.WithMaxAge(time.Hour*24*7),
-			rotatelogs.WithRotationTime(time.Hour*24),
-		)
-		if err != nil {
-			log.Printf("failed to create rotatelogs debugLogWriter : %s", err)
-			return
+		if gWriteLogToFile > 0 {
+			os.Mkdir("logs", os.ModePerm)
+			debugLogPath := "logs/debug.log"
+			warnLogPath := "logs/warn.log"
+			debugLogWriter, err := rotatelogs.New(
+				debugLogPath+".%Y%m%d%H%M%S",
+				rotatelogs.WithLinkName(debugLogPath),
+				rotatelogs.WithMaxAge(time.Hour*24*7),
+				rotatelogs.WithRotationTime(time.Hour*24),
+			)
+			if err != nil {
+				log.Printf("failed to create rotatelogs debugLogWriter : %s", err)
+				return
+			}
+			warnLogWriter, err := rotatelogs.New(
+				warnLogPath+".%Y%m%d%H%M%S",
+				rotatelogs.WithLinkName(warnLogPath),
+				rotatelogs.WithMaxAge(time.Hour*24*7),
+				rotatelogs.WithRotationTime(time.Hour*24),
+			)
+			if err != nil {
+				log.Printf("failed to create rotatelogs warnLogWriter : %s", err)
+				return
+			}
+			log.Hooks.Add(lfshook.NewHook(lfshook.WriterMap{
+				logrus.DebugLevel: debugLogWriter,
+				logrus.InfoLevel:  debugLogWriter,
+				logrus.WarnLevel:  warnLogWriter,
+				logrus.ErrorLevel: warnLogWriter,
+				logrus.FatalLevel: warnLogWriter,
+				logrus.PanicLevel: warnLogWriter,
+			}))
 		}
-		warnLogWriter, err := rotatelogs.New(
-			warnLogPath+".%Y%m%d%H%M%S",
-			rotatelogs.WithLinkName(warnLogPath),
-			rotatelogs.WithMaxAge(time.Hour*24*7),
-			rotatelogs.WithRotationTime(time.Hour*24),
-		)
-		if err != nil {
-			log.Printf("failed to create rotatelogs warnLogWriter : %s", err)
-			return
-		}
-		log.Hooks.Add(lfshook.NewHook(lfshook.WriterMap{
-			logrus.DebugLevel: debugLogWriter,
-			logrus.InfoLevel:  debugLogWriter,
-			logrus.WarnLevel:  warnLogWriter,
-			logrus.ErrorLevel: warnLogWriter,
-			logrus.FatalLevel: warnLogWriter,
-			logrus.PanicLevel: warnLogWriter,
-		}))
 	} else {
 		log.SetLevel(logrus.WarnLevel)
-		warnLogPath := "logs/warn.log"
-		warnLogWriter, err := rotatelogs.New(
-			warnLogPath+".%Y%m%d%H%M%S",
-			rotatelogs.WithLinkName(warnLogPath),
-			rotatelogs.WithMaxAge(time.Hour*24*7),
-			rotatelogs.WithRotationTime(time.Hour*24),
-		)
-		if err != nil {
-			log.Printf("failed to create rotatelogs warnLogWriter : %s", err)
-			return
+		if gWriteLogToFile > 0 {
+			os.Mkdir("logs", os.ModePerm)
+			warnLogPath := "logs/warn.log"
+			warnLogWriter, err := rotatelogs.New(
+				warnLogPath+".%Y%m%d%H%M%S",
+				rotatelogs.WithLinkName(warnLogPath),
+				rotatelogs.WithMaxAge(time.Hour*24*7),
+				rotatelogs.WithRotationTime(time.Hour*24),
+			)
+			if err != nil {
+				log.Printf("failed to create rotatelogs warnLogWriter : %s", err)
+				return
+			}
+			log.Hooks.Add(lfshook.NewHook(lfshook.WriterMap{
+				logrus.WarnLevel:  warnLogWriter,
+				logrus.ErrorLevel: warnLogWriter,
+				logrus.FatalLevel: warnLogWriter,
+				logrus.PanicLevel: warnLogWriter,
+			}))
 		}
-		log.Hooks.Add(lfshook.NewHook(lfshook.WriterMap{
-			logrus.WarnLevel:  warnLogWriter,
-			logrus.ErrorLevel: warnLogWriter,
-			logrus.FatalLevel: warnLogWriter,
-			logrus.PanicLevel: warnLogWriter,
-		}))
 	}
 }
 
@@ -115,6 +120,7 @@ func main() {
 	_gAbandonMinutes := flag.Int("a", 30, "Abandon offline user after 30 minutes")
 	_gSyncDelaySeconds := flag.Int("y", 30, "sync userInfo from ws-connector after 30s delay")
 	_gIsDebug := flag.Int("d", 0, "is debug")
+	_gWriteLogToFile := flag.Int("wf", 0, "write log to file")
 	// _gTestCount := flag.Int("c", 1, "test send message RPS")
 	// _gTestUserName := flag.String("u", "gotest-user-", "TestUserName prefix")
 	// _gTestUserNameRange := flag.Int("ur", 9999, "TestUserName range")
@@ -126,6 +132,7 @@ func main() {
 	gAbandonMinutes = *_gAbandonMinutes
 	gSyncDelaySeconds = *_gSyncDelaySeconds
 	gIsDebug = *_gIsDebug
+	gWriteLogToFile = *_gWriteLogToFile
 	// gTestCount = *_gTestCount
 	// gTestUserName = *_gTestUserName
 	// gTestUserNameRange = *_gTestUserNameRange

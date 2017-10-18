@@ -20,6 +20,7 @@ var gRPS int
 var gMaxClients int
 var gIsDebug int
 var gFastExit int
+var gWriteLogToFile int
 var gNodeID = AppName
 
 var gHub *Hub
