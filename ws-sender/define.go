@@ -2,23 +2,14 @@ package main
 
 import (
 	"time"
-
-	moleculer "github.com/roytan883/moleculer-go"
-	logrus "github.com/sirupsen/logrus"
 )
 
-var log *logrus.Logger
-
-var pBroker *moleculer.ServiceBroker
-
-var gUrls string
-var gNatsHosts []string
-var gPort int
-var gID int
-var gIsDebug int
-var gWriteLogToFile int
-var gNodeID = AppName
-var gWaitAckSeconds int
+const (
+	//AppName ...
+	AppName = "ws-sender"
+	//ServiceName ...
+	ServiceName = AppName
+)
 
 const (
 	cWsConnectorActionPush       = "ws-connector.push"
