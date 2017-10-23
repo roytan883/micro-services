@@ -207,14 +207,6 @@ func (h *LocalSaveHub) runCheckLocalSaveSend() {
 	}()
 }
 
-func saveToRemoteCache(userID string, cid string, mid string, data *pushMsgDataStruct) {
-	//TODO: save msg to remote cache process
-	log.Info("saveToRemoteCache userID = ", userID)
-	log.Info("saveToRemoteCache cid = ", cid)
-	log.Info("saveToRemoteCache mid = ", mid)
-	log.Info("saveToRemoteCache data = ", data)
-}
-
 func eventWsConnectorOutAck(req *protocol.MsEvent) {
 	log.Info("run eventWsConnectorOutAck")
 
@@ -234,6 +226,23 @@ func eventWsConnectorOutAck(req *protocol.MsEvent) {
 		gLocalSaveHub.waitAckMsgs.Delete(key)
 		log.Info("finish ACK: ", key)
 	}
+}
+
+func saveToRemoteCache(userID string, cid string, mid string, data *pushMsgDataStruct) {
+	//TODO: save msg to remote cache process
+	log.Info("saveToRemoteCache userID = ", userID)
+	log.Info("saveToRemoteCache cid = ", cid)
+	log.Info("saveToRemoteCache mid = ", mid)
+	log.Info("saveToRemoteCache data = ", data)
+
+	pBroker.Call(cWsCacheActionSave, &cacheMsgStruct{
+		UserID:    userID,
+		Cid:       cid,
+		Mid:       mid,
+		Msg:       data,
+		Timestamp: getNowTimestamp(),
+	}, nil)
+
 }
 
 // func eventWsConnectorOutOnline(req *protocol.MsEvent) {

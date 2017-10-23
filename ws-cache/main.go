@@ -8,10 +8,10 @@ import (
 )
 
 func usage() {
-	log.Fatalf("Usage: ws-online [-s The nats server URLs (nats://192.168.1.69:12008)] [-i nodeID (0)] [-d debug (0)] [-w WaitAckSeconds (10)] [-fe FastExit (0)] [-wf WriteLogToFile (0)]\n")
+	log.Fatalf("Usage: ws-cache [-s The nats server URLs (nats://192.168.1.69:12008)] [-i nodeID (0)] [-d debug (0)] [-fe FastExit (0)] [-wf WriteLogToFile (0)] [-w MaxCacheSeconds (1800)]\n")
 }
 
-//./ws-sender -s nats://192.168.1.69:12008
+//./ws-cache -s nats://192.168.1.69:12008
 func main() {
 	closer.Bind(cleanupFunc)
 

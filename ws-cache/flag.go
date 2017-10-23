@@ -16,16 +16,17 @@ var gFastExit int
 var gIsDebug int
 var gWriteLogToFile int
 var gNodeID = AppName
-var gWaitAckSeconds int
+var gMaxCacheSeconds int
 
 func initFlag() {
 	_gUrls := flag.String("s", nats.DefaultURL, "The nats server URLs (separated by comma, default localhost:4222)")
 	_gID := flag.Int("i", 0, "ID of the service on this machine")
-	_gWaitAckSeconds := flag.Int("w", 10, "wait 10s ack")
 
 	_gFastExit := flag.Int("fe", 0, "fast exit")
 	_gIsDebug := flag.Int("d", 0, "is debug")
 	_gWriteLogToFile := flag.Int("wf", 0, "write log to file")
+
+	_gMaxCacheSeconds := flag.Int("m", 1800, "max cache message seconds")
 
 	flag.Usage = usage
 	flag.Parse()
@@ -37,7 +38,7 @@ func initFlag() {
 	gFastExit = *_gFastExit
 	gWriteLogToFile = *_gWriteLogToFile
 
-	gWaitAckSeconds = *_gWaitAckSeconds
+	gMaxCacheSeconds = *_gMaxCacheSeconds
 
 	gNatsHosts = strings.Split(gUrls, ",")
 
@@ -52,5 +53,5 @@ func printFlag() {
 	log.Warnf("gNodeID : %v\n", gNodeID)
 	log.Warnf("gUrls : %v\n", gUrls)
 	log.Warnf("gNatsHosts : %v\n", gNatsHosts)
-	log.Warnf("gWaitAckSeconds : %v\n", gWaitAckSeconds)
+	log.Warnf("gMaxCacheSeconds : %v\n", gMaxCacheSeconds)
 }

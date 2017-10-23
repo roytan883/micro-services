@@ -35,10 +35,10 @@ const (
 	cWsOnlineOutOffline             = "ws-online.out.offline"      //ClientInfo
 
 	cWsSenderActionSend = "ws-sender.send" //in: pushMsgStruct || out: null, err
-	cWsCacheActionSave  = "ws-cache.save"  //in: cacheStruct || out: null, err
+	cWsCacheActionSave  = "ws-cache.save"  //in: cacheMsgStruct || out: null, err
 )
 
-type cacheStruct struct {
+type cacheMsgStruct struct {
 	UserID    string      `json:"userID"`
 	Cid       string      `json:"cid"`
 	Timestamp string      `json:"timestamp"`
