@@ -75,10 +75,10 @@ func actionUserInfo(req *protocol.MsRequest) (interface{}, error) {
 		log.Warn("run eventInKick, parse req.Data to jsonString error: ", err)
 		return nil, errors.New("parse error")
 	}
-	jsonObj := &getUserOnlineInfoStruct{}
+	jsonObj := &userIDStruct{}
 	err = jsoniter.Unmarshal(jsonString, jsonObj)
 	if err != nil {
-		log.Warn("run eventInKick, parse req.Data to jsonObj getUserOnlineInfoStruct error: ", err)
+		log.Warn("run eventInKick, parse req.Data to jsonObj userIDStruct error: ", err)
 		return nil, errors.New("parse error")
 	}
 	if len(jsonObj.UserID) > 0 {
@@ -99,10 +99,10 @@ func eventInKickClient(req *protocol.MsEvent) {
 		log.Warn("run eventInKickClient, parse req.Data to jsonString error: ", err)
 		return
 	}
-	jsonObj := &kickClientStruct{}
+	jsonObj := &cidStruct{}
 	err = jsoniter.Unmarshal(jsonString, jsonObj)
 	if err != nil {
-		log.Warn("run eventInKickClient, parse req.Data to jsonObj kickClientStruct error: ", err)
+		log.Warn("run eventInKickClient, parse req.Data to jsonObj cidStruct error: ", err)
 		return
 	}
 	if len(jsonObj.Cid) > 0 {
@@ -117,10 +117,10 @@ func eventInKickUser(req *protocol.MsEvent) {
 		log.Warn("run eventInKickUser, parse req.Data to jsonString error: ", err)
 		return
 	}
-	jsonObj := &kickUserStruct{}
+	jsonObj := &userIDStruct{}
 	err = jsoniter.Unmarshal(jsonString, jsonObj)
 	if err != nil {
-		log.Warn("run eventInKickUser, parse req.Data to jsonObj kickUserStruct error: ", err)
+		log.Warn("run eventInKickUser, parse req.Data to jsonObj userIDStruct error: ", err)
 		return
 	}
 	if len(jsonObj.UserID) > 0 {

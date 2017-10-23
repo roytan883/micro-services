@@ -44,31 +44,30 @@ const (
 type gCmdType uint32
 
 const (
-	cWsConnectorActionPush       = "ws-connector.push"
-	cWsConnectorActionCount      = "ws-connector.count"
-	cWsConnectorActionMetrics    = "ws-connector.metrics"
-	cWsConnectorActionUserInfo   = "ws-connector.userInfo"
-	cWsConnectorInPush           = "ws-connector.in.push"
-	cWsConnectorInKickClient     = "ws-connector.in.kickClient"
-	cWsConnectorInKickUser       = "ws-connector.in.kickUser"
-	cWsConnectorOutOnline        = "ws-connector.out.online"
-	cWsConnectorOutOffline       = "ws-connector.out.offline"
-	cWsConnectorInSyncUsersInfo  = "ws-connector.in.syncUsersInfo"
-	cWsConnectorOutSyncUsersInfo = "ws-connector.out.syncUsersInfo"
-	cWsConnectorOutAck           = "ws-connector.out.ack"
-	cWsConnectorInSyncMetrics    = "ws-connector.in.syncMetrics"
-	cWsConnectorOutSyncMetrics   = "ws-connector.out.syncMetrics"
+	cWsConnectorActionPush       = "ws-connector.push"              //in: pushMsgStruct || out: null, err
+	cWsConnectorActionCount      = "ws-connector.count"             //in: null || out: count, err
+	cWsConnectorActionMetrics    = "ws-connector.metrics"           //in: null || out: metricsStruct, err
+	cWsConnectorActionUserInfo   = "ws-connector.userInfo"          //in: userIDStruct || out: []ClientInfo, err
+	cWsConnectorInPush           = "ws-connector.in.push"           //pushMsgStruct
+	cWsConnectorInKickClient     = "ws-connector.in.kickClient"     //cidStruct
+	cWsConnectorInKickUser       = "ws-connector.in.kickUser"       //userIDStruct
+	cWsConnectorOutOnline        = "ws-connector.out.online"        //ClientInfo
+	cWsConnectorOutOffline       = "ws-connector.out.offline"       //ClientInfo
+	cWsConnectorInSyncUsersInfo  = "ws-connector.in.syncUsersInfo"  //null
+	cWsConnectorOutSyncUsersInfo = "ws-connector.out.syncUsersInfo" //ClientInfo
+	cWsConnectorOutAck           = "ws-connector.out.ack"           //ackStruct
+	cWsConnectorInSyncMetrics    = "ws-connector.in.syncMetrics"    //null
+	cWsConnectorOutSyncMetrics   = "ws-connector.out.syncMetrics"   //metricsStruct
 
 	cWsTokenActionVerify = "ws-token.verify"
 
-	//in: userIDStruct `json:"userID"` || out:onlineStatusStruct
-	cWsOnlineActionOnlineStatus = "ws-online.onlineStatus"
-	//in: idsStruct `json:"ids"` || out:onlineStatusBulkStruct
-	cWsOnlineActionOnlineStatusBulk = "ws-online.onlineStatusBulk"
-	cWsOnlineOutOnline              = "ws-online.out.online"
-	cWsOnlineOutOffline             = "ws-online.out.offline"
+	cWsOnlineActionOnlineStatus     = "ws-online.onlineStatus"     //in: userIDStruct `json:"userID"` || out:onlineStatusStruct, err
+	cWsOnlineActionOnlineStatusBulk = "ws-online.onlineStatusBulk" //in: idsStruct `json:"ids"` || out:onlineStatusBulkStruct, err
+	cWsOnlineOutOnline              = "ws-online.out.online"       //ClientInfo
+	cWsOnlineOutOffline             = "ws-online.out.offline"      //ClientInfo
 
-	cWsSenderActionSend = "ws-sender.send"
+	cWsSenderActionSend = "ws-sender.send" //in: pushMsgStruct || out: null, err
+	cWsCacheActionSave  = "ws-cache.save"  //in: cacheStruct || out: null, err
 )
 
 type ackStruct struct {
@@ -87,15 +86,11 @@ type pushMsgDataStruct struct {
 	Msg interface{} `json:"msg"`
 }
 
-type kickClientStruct struct {
+type cidStruct struct {
 	Cid string `json:"cid"`
 }
 
-type kickUserStruct struct {
-	UserID string `json:"userID"`
-}
-
-type getUserOnlineInfoStruct struct {
+type userIDStruct struct {
 	UserID string `json:"userID"`
 }
 
