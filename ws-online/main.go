@@ -103,12 +103,12 @@ var upgrader = websocket.Upgrader{
 }
 
 func usage() {
-	log.Fatalf("Usage: ws-online [-s The nats server URLs (nats://192.168.1.69:12008)] [-i nodeID (0)] [-d debug (0)] [-a AbandonMinutes (30)] [-y SyncDelaySeconds (30)] \n")
+	log.Fatalf("Usage: ws-online [-s The nats server URLs (nats://192.168.1.223:12008)] [-i nodeID (0)] [-d debug (0)] [-a AbandonMinutes (30)] [-y SyncDelaySeconds (30)] \n")
 }
 
 var gCloseChan chan int
 
-//./ws-online -s nats://192.168.1.69:12008 -y 3 -a 5
+//./ws-online -s nats://192.168.1.223:12008 -y 3 -a 5
 func main() {
 
 	gCloseChan = make(chan int, 1)

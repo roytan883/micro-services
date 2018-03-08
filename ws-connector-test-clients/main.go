@@ -103,7 +103,7 @@ func usage() {
 	log.Fatalf("Usage: ws-connector-test [-s server (127.0.0.1:12020)] [-d debug (0)] [-c TestCount (1)] [-u TestUserName (gotest-user-)] \n")
 }
 
-// .\ws-connector-test-clients.exe -s 192.168.1.69:12020 -c 10000
+// .\ws-connector-test-clients.exe -s 192.168.1.223:12020 -c 10000
 func main() {
 	closer.Bind(cleanupFunc)
 

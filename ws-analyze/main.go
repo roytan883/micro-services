@@ -95,12 +95,12 @@ var upgrader = websocket.Upgrader{
 }
 
 func usage() {
-	log.Fatalf("Usage: ws-online [-s The nats server URLs (nats://192.168.1.69:12008)] [-i nodeID (0)] [-d debug (0)] [-w WaitAckSeconds (10)]\n")
+	log.Fatalf("Usage: ws-online [-s The nats server URLs (nats://192.168.1.223:12008)] [-i nodeID (0)] [-d debug (0)] [-w WaitAckSeconds (10)]\n")
 }
 
 var gCloseChan chan int
 
-//./ws-analyze -s nats://192.168.1.69:12008 -d 1
+//./ws-analyze -s nats://192.168.1.223:12008 -d 1
 func main() {
 
 	gCloseChan = make(chan int, 1)

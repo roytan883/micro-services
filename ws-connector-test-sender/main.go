@@ -104,12 +104,12 @@ var upgrader = websocket.Upgrader{
 }
 
 func usage() {
-	log.Fatalf("Usage: ws-connector-test [-s The nats server URLs (nats://192.168.1.69:12008)] [-d debug (0)] [-c TestCount RPS (1)] [-u TestUserName (gotest-user-)] [-ur TestUserName range (9999)]\n")
+	log.Fatalf("Usage: ws-connector-test [-s The nats server URLs (nats://192.168.1.223:12008)] [-d debug (0)] [-c TestCount RPS (1)] [-u TestUserName (gotest-user-)] [-ur TestUserName range (9999)]\n")
 }
 
 var gCloseChan chan int
 
-//.\ws-connector-test-sender.exe -s nats://192.168.1.69:12008 -c 500
+//.\ws-connector-test-sender.exe -s nats://192.168.1.223:12008 -c 500
 func main() {
 
 	gCloseChan = make(chan int, 1)

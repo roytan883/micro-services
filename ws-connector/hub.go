@@ -171,11 +171,13 @@ func outMsgHandler(data interface{}) {
 
 	// log.Infof("Hub outMsgHandler from client[%s] msgType[%d] msg: %s\n", m.c.Cid, m.msgType, m.msg)
 	for _, clientID := range m.ids {
-		// log.Infof("Hub outMsgHandler to client[%s]\n", clientID)
+		var sent = false
+
 		if client, ok := m.h.clients.Load(clientID); ok {
 			if clientObj, ok := client.(*Client); ok {
 				atomic.AddUint64(&gTotalSend, 1)
 				clientObj.send(m.msg)
+				sent = true
 			}
 		}
 		if userID2Cids, ok := m.h.userID2Cids.Load(clientID); ok {
@@ -183,9 +185,14 @@ func outMsgHandler(data interface{}) {
 				if clientObj, ok := value.(*Client); ok {
 					atomic.AddUint64(&gTotalSend, 1)
 					clientObj.send(m.msg)
+					sent = true
 				}
 				return true
 			})
+		}
+
+		if sent == false {
+			log.Infof("Hub outMsgHandler can't find clientObj for userID[%s]\n", clientID)
 		}
 	}
 }

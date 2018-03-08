@@ -34,7 +34,7 @@ func initLog() {
 }
 
 // NOTE: Use tls scheme for TLS, e.g. nats-req -s tls://demo.nats.io:4443 foo hello
-// ws-connector -s nats://192.168.1.69:12008
+// ws-connector -s nats://192.168.1.223:12008
 // ws-connector -s nats://127.0.0.1:4222
 func usage() {
 	log.Fatalf("Usage: dev [-s server (%s)] \n", nats.DefaultURL)

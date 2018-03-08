@@ -102,8 +102,8 @@ func setDebug() {
 //openssl req -new -x509 -key key_go.pem -out cert_go.pem -days 36500
 
 // NOTE: Use tls scheme for TLS, e.g. nats-req -s tls://demo.nats.io:4443 foo hello
-// go run .\define.go .\main.go .\ws-connector.go .\hub.go .\client.go .\pool.go -s nats://192.168.1.69:12008
-// ws-connector -s nats://192.168.1.69:12008
+// go run .\define.go .\main.go .\ws-connector.go .\hub.go .\client.go .\pool.go -s nats://192.168.1.223:12008
+// ws-connector -s nats://192.168.1.223:12008
 // ws-connector -s nats://127.0.0.1:4222
 func usage() {
 	log.Fatalf("Usage: ws-connector [-s server (%s)] [-p port (12020)] [-i nodeID (0)] [-d debug (0)] [-r RPS (2500)] [-m MaxClients (500000 (20G) //400MB~10K user)] [-fe FastExit (0)] [-wf WriteLogToFile (0)]\n", nats.DefaultURL)
@@ -113,6 +113,7 @@ func usage() {
 pro:
 ./ws-connector -s nats://127.0.0.1:12008 -p 12020 -i 0 -d 0 -fe 0 -wf 1
 dev:
+./ws-connector -s nats://192.168.1.223:12008 -p 12020 -i 0 -d 1 -fe 1 -wf 0
 ./ws-connector -s nats://127.0.0.1:12008 -p 12020 -i 0 -d 1 -fe 1 -wf 0
 ./ws-connector -s nats://127.0.0.1:12008 -p 12021 -i 1 -d 1 -fe 1 -wf 0
 */

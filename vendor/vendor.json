@@ -63,16 +63,16 @@
 			"revisionTime": "2017-09-10T02:25:31Z"
 		},
 		{
-			"checksumSHA1": "HCvSb0rFsytm1JuTndVZoR6JJxE=",
+			"checksumSHA1": "lLed03Y8ul450he38HUxaTe/I5s=",
 			"path": "github.com/roytan883/moleculer-go",
-			"revision": "3b3de83e5accb302f3de6d7fea3afaeb3efc9135",
-			"revisionTime": "2017-10-17T08:20:14Z"
+			"revision": "fd4d6887111e281b6d9bab34704521d5517695dd",
+			"revisionTime": "2018-03-07T10:15:19Z"
 		},
 		{
-			"checksumSHA1": "lpk5VhOvrWoICHn6BJ5lWXPYd5w=",
+			"checksumSHA1": "hX4nuSgqd0h5lIiFeQYQV4drwu4=",
 			"path": "github.com/roytan883/moleculer-go/protocol",
-			"revision": "3b3de83e5accb302f3de6d7fea3afaeb3efc9135",
-			"revisionTime": "2017-10-17T08:20:14Z"
+			"revision": "fd4d6887111e281b6d9bab34704521d5517695dd",
+			"revisionTime": "2018-03-07T10:15:19Z"
 		},
 		{
 			"checksumSHA1": "BYvROBsiyAXK4sq6yhDe8RgT4LM=",
