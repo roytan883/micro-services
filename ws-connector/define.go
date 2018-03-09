@@ -30,10 +30,10 @@ const (
 	writeWait = 10 * time.Second
 
 	// Time allowed to read the next pong message from the peer.
-	pongWait = 200 * time.Second * 1
+	pongWait = 240 * time.Second * 1
 
 	// Send pings to peer with this period. Must be less than pongWait.
-	pingPeriod = (pongWait * 9) / 10
+	pingPeriod = 210 * time.Second * 1
 
 	maxConcurrentAccept = 500
 

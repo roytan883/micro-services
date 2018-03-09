@@ -144,6 +144,7 @@ func (c *Client) readPump() {
 			log.Infof("client[%s] exit readPump, ReadMessage error: %v", c.Cid, err)
 			return
 		}
+		log.Infof("client[%s] ReadMessage msgType: %v", msgType)
 		if msgType == websocket.TextMessage {
 			message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 			c.hub.handleClientMessage(c, msgType, message)
