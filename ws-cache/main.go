@@ -11,7 +11,7 @@ func usage() {
 	log.Fatalf("Usage: ws-cache [-s The nats server URLs (nats://192.168.1.223:12008)] [-i nodeID (0)] [-d debug (0)] [-fe FastExit (0)] [-wf WriteLogToFile (0)] [-w MaxCacheSeconds (1800)]\n")
 }
 
-//./ws-cache -s nats://192.168.1.223:12008
+//./ws-cache -s nats://192.168.1.223:12008 -d 1
 func main() {
 	closer.Bind(cleanupFunc)
 

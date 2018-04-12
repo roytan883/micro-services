@@ -100,5 +100,5 @@ type waitAckStruct struct {
 	Cid      string
 	Mid      string
 	SendTime time.Time
-	Data     *pushMsgDataStruct
+	Data     interface{}
 }

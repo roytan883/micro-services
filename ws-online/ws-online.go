@@ -216,7 +216,6 @@ func handlerClientInfo(req *protocol.MsEvent) {
 		LastOfflineTime: offlineTime,
 		Clients:         &sync.Map{},
 	}
-	log.Info("handlerClientInfo newUserInfo = ", newUserInfo)
 
 	isOnline := newUserInfo.LastOnlineTime.After(newUserInfo.LastOfflineTime)
 	clientInfo.IsOnline = isOnline
@@ -227,6 +226,8 @@ func handlerClientInfo(req *protocol.MsEvent) {
 		log.Warn("handlerClientInfo, LoadOrStore cast to userInfo error")
 		return
 	}
+
+	log.Infof("handlerClientInfo userInfoObj = %+v\n", userInfoObj)
 
 	if !isOld && isOnline {
 		pBroker.Broadcast(cWsOnlineOutOnline, clientInfo)
@@ -264,6 +265,17 @@ func handlerClientInfo(req *protocol.MsEvent) {
 		// 	}, userInfoObj.LastOfflineTime)
 		// }
 	}
+
+	// log.Infof("handlerClientInfo newUserInfo Clients %+v", userInfoObj.Clients)
+
+	userInfoObj.Clients.Range(func(key, value interface{}) bool {
+		clientInfoObj, ok := value.(*ClientInfo)
+		if ok {
+			log.Infof("handlerClientInfo userInfoObj.clientInfoObj = %+v\n", clientInfoObj)
+		}
+		return true
+	})
+
 }
 
 //Close ...

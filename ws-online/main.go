@@ -108,7 +108,7 @@ func usage() {
 
 var gCloseChan chan int
 
-//./ws-online -s nats://192.168.1.223:12008 -y 3 -a 5
+//./ws-online -s nats://192.168.1.223:12008 -y 3 -a 5 -d 1
 func main() {
 
 	gCloseChan = make(chan int, 1)

@@ -144,9 +144,9 @@ func doSend(ids []string, data *pushMsgDataStruct) {
 						nodes = append(nodes, clientInfo.UserID)
 						wsConnectorNodes[clientInfo.NodeID] = nodes
 					}
-					gLocalSaveHub.save(clientInfo.UserID, clientInfo.Cid, data.Mid, data)
+					gLocalSaveHub.save(clientInfo.UserID, clientInfo.Cid, data.Mid, data.Msg)
 				} else {
-					saveToRemoteCache(clientInfo.UserID, clientInfo.Cid, data.Mid, data)
+					saveToRemoteCache(clientInfo.UserID, clientInfo.Cid, data.Mid, data.Msg)
 				}
 			}
 		}
@@ -171,7 +171,7 @@ type LocalSaveHub struct {
 	hubClosed   chan int
 }
 
-func (h *LocalSaveHub) save(userID string, cid string, mid string, data *pushMsgDataStruct) {
+func (h *LocalSaveHub) save(userID string, cid string, mid string, data interface{}) {
 	key := fmt.Sprintf("%s.%s.%s", mid, userID, cid)
 	h.waitAckMsgs.Store(key, &waitAckStruct{
 		UserID:   userID,
@@ -228,7 +228,7 @@ func eventWsConnectorOutAck(req *protocol.MsEvent) {
 	}
 }
 
-func saveToRemoteCache(userID string, cid string, mid string, data *pushMsgDataStruct) {
+func saveToRemoteCache(userID string, cid string, mid string, data interface{}) {
 	//TODO: save msg to remote cache process
 	log.Info("saveToRemoteCache userID = ", userID)
 	log.Info("saveToRemoteCache cid = ", cid)
