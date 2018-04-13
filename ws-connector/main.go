@@ -112,15 +112,15 @@ func setDebug() {
 // ws-connector -s nats://192.168.1.223:12008
 // ws-connector -s nats://127.0.0.1:4222
 func usage() {
-	log.Fatalf("Usage: ws-connector [-s server (%s)] [-p port (12020)] [-i nodeID (0)] [-d debug (0)] [-r RPS (2500)] [-m MaxClients (500000 (20G) //400MB~10K user)] [-fe FastExit (0)] [-wf WriteLogToFile (0)]\n", nats.DefaultURL)
+	log.Fatalf("Usage: ws-connector [-s server (%s)] [-p port (12220)] [-i nodeID (0)] [-d debug (0)] [-r RPS (2500)] [-m MaxClients (500000 (20G) //400MB~10K user)] [-fe FastExit (0)] [-wf WriteLogToFile (0)]\n", nats.DefaultURL)
 }
 
 /*
 pro:
-./ws-connector -s nats://127.0.0.1:12008 -p 12020 -i 0 -d 0 -fe 0 -wf 1
+./ws-connector -s nats://127.0.0.1:12008 -p 12220 -i 0 -d 0 -fe 0 -wf 1
 dev:
-./ws-connector -s nats://192.168.1.223:12008 -p 12020 -i 0 -d 1 -fe 1 -wf 0
-./ws-connector -s nats://127.0.0.1:12008 -p 12020 -i 0 -d 1 -fe 1 -wf 0
+./ws-connector -s nats://192.168.1.223:12008 -p 12220 -i 0 -d 1 -fe 1 -wf 0
+./ws-connector -s nats://127.0.0.1:12008 -p 12220 -i 0 -d 1 -fe 1 -wf 0
 ./ws-connector -s nats://127.0.0.1:12008 -p 12021 -i 1 -d 1 -fe 1 -wf 0
 */
 func main() {
@@ -128,7 +128,7 @@ func main() {
 
 	//get NATS server host
 	_gUrls := flag.String("s", nats.DefaultURL, "The nats server URLs (separated by comma, default localhost:4222)")
-	_gPort := flag.Int("p", 12020, "listen websocket port")
+	_gPort := flag.Int("p", 12220, "listen websocket port")
 	_gID := flag.Int("i", 0, "ID of the service on this machine")
 	_gRPS := flag.Int("r", 2500, "max request per second")
 	_gMaxClients := flag.Int("m", 500000, "max clients")

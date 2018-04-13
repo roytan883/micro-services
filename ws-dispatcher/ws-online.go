@@ -2,7 +2,7 @@ package main
 
 import (
 
-	// _ "net/http/pprof" //https://localhost:12020/debug/pprof
+	// _ "net/http/pprof" //https://localhost:12220/debug/pprof
 
 	moleculer "github.com/roytan883/moleculer-go"
 	"github.com/roytan883/moleculer-go/protocol"

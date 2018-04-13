@@ -100,14 +100,14 @@ var upgrader = websocket.Upgrader{
 }
 
 func usage() {
-	log.Fatalf("Usage: ws-connector-test [-s server (127.0.0.1:12020)] [-d debug (0)] [-c TestCount (1)] [-u TestUserName (gotest-user-)] \n")
+	log.Fatalf("Usage: ws-connector-test [-s server (127.0.0.1:12220)] [-d debug (0)] [-c TestCount (1)] [-u TestUserName (gotest-user-)] \n")
 }
 
-// .\ws-connector-test-clients.exe -s 192.168.1.223:12020 -c 10000
+// .\ws-connector-test-clients.exe -s 192.168.1.223:12220 -c 10000
 func main() {
 	closer.Bind(cleanupFunc)
 
-	_gUrls := flag.String("s", "127.0.0.1:12020", "The websocket server host address")
+	_gUrls := flag.String("s", "127.0.0.1:12220", "The websocket server host address")
 	_gIsDebug := flag.Int("d", 0, "is debug")
 	_gTestCount := flag.Int("c", 1, "test websocket count")
 	_gTestUserName := flag.String("u", "gotest-user-", "TestUserName prefix")
