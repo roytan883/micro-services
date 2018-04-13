@@ -51,14 +51,17 @@ func setDebug() {
 				log.Printf("failed to create rotatelogs warnLogWriter : %s", err)
 				return
 			}
-			log.Hooks.Add(lfshook.NewHook(lfshook.WriterMap{
-				logrus.DebugLevel: debugLogWriter,
-				logrus.InfoLevel:  debugLogWriter,
-				logrus.WarnLevel:  warnLogWriter,
-				logrus.ErrorLevel: warnLogWriter,
-				logrus.FatalLevel: warnLogWriter,
-				logrus.PanicLevel: warnLogWriter,
-			}))
+			log.Hooks.Add(lfshook.NewHook(
+				lfshook.WriterMap{
+					logrus.DebugLevel: debugLogWriter,
+					logrus.InfoLevel:  debugLogWriter,
+					logrus.WarnLevel:  warnLogWriter,
+					logrus.ErrorLevel: warnLogWriter,
+					logrus.FatalLevel: warnLogWriter,
+					logrus.PanicLevel: warnLogWriter,
+				},
+				&logrus.JSONFormatter{},
+			))
 		}
 	} else {
 		log.SetLevel(logrus.WarnLevel)
@@ -75,12 +78,15 @@ func setDebug() {
 				log.Printf("failed to create rotatelogs warnLogWriter : %s", err)
 				return
 			}
-			log.Hooks.Add(lfshook.NewHook(lfshook.WriterMap{
-				logrus.WarnLevel:  warnLogWriter,
-				logrus.ErrorLevel: warnLogWriter,
-				logrus.FatalLevel: warnLogWriter,
-				logrus.PanicLevel: warnLogWriter,
-			}))
+			log.Hooks.Add(lfshook.NewHook(
+				lfshook.WriterMap{
+					logrus.WarnLevel:  warnLogWriter,
+					logrus.ErrorLevel: warnLogWriter,
+					logrus.FatalLevel: warnLogWriter,
+					logrus.PanicLevel: warnLogWriter,
+				},
+				&logrus.JSONFormatter{},
+			))
 		}
 	}
 }
