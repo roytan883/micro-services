@@ -56,3 +56,4 @@ debug.test
 
 node_modules
 logs
+sftp.json

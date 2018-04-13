@@ -1,8 +1,0 @@
-{
-    "editor.tabSize": 2,
-    "files.autoSave": "afterDelay",
-    "files.autoSaveDelay": 30000,
-    // "go.formatOnSave": false,
-    "go.gocodeAutoBuild": false,
-    "workbench.iconTheme": "vscode-icons"
-}

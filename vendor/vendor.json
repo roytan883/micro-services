@@ -3,16 +3,16 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "rNGJereenlgchMueLU9iBCyQDo8=",
+			"checksumSHA1": "+1LsRRZKa06yTFg/Tu5NCsyHxOA=",
 			"path": "github.com/gorilla/websocket",
-			"revision": "71fa72d4842364bc5f74185f4161e0099ea3624a",
-			"revisionTime": "2017-10-11T16:07:11Z"
+			"revision": "eb925808374e5ca90c83401a40d711dc08c0c0f6",
+			"revisionTime": "2018-03-06T18:15:48Z"
 		},
 		{
-			"checksumSHA1": "H+zZYQO4Y1qcFg9ctqxnpcHB9r8=",
+			"checksumSHA1": "EFoWu07IyDmIvpWV/cugOfO8BR8=",
 			"path": "github.com/json-iterator/go",
-			"revision": "6240e1e7983a85228f7fd9c3e1b6932d46ec58e2",
-			"revisionTime": "2017-10-10T00:57:02Z"
+			"revision": "f89479f5c0d83b365504d632ab57390447bb406a",
+			"revisionTime": "2018-04-08T00:25:46Z"
 		},
 		{
 			"checksumSHA1": "XZ96seKtoJt55YtqPL7B6fFpDiI=",
@@ -21,46 +21,58 @@
 			"revisionTime": "2017-05-01T06:38:31Z"
 		},
 		{
-			"checksumSHA1": "zN17KECTZM56xvdBURLqpW1duYg=",
+			"checksumSHA1": "VFdd7/gnXSPEQqUMSI9ufakRMnI=",
 			"path": "github.com/lestrrat/go-strftime",
-			"revision": "04ef93e285313c8978cbc7cad26d2aa7a9927451",
-			"revisionTime": "2017-01-13T11:20:00Z"
+			"revision": "ba3bf9c1d0421aa146564a632931730344f1f9f1",
+			"revisionTime": "2018-02-20T04:22:22Z"
 		},
 		{
-			"checksumSHA1": "YdkUoSkbe4ZgLJyFqpEbWZpfPtE=",
+			"checksumSHA1": "ZTcgWKWHsrX0RXYVXn5Xeb8Q0go=",
+			"path": "github.com/modern-go/concurrent",
+			"revision": "bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94",
+			"revisionTime": "2018-03-06T01:26:44Z"
+		},
+		{
+			"checksumSHA1": "TyxdmX5pTsJDUZ1406j+GLuzk5E=",
+			"path": "github.com/modern-go/reflect2",
+			"revision": "05fbef0ca5da472bbf96c9322b84a53edc03c9fd",
+			"revisionTime": "2018-03-20T13:32:07Z"
+		},
+		{
+			"checksumSHA1": "y//obx2c3mCtcn1HW9p90lc0LLs=",
 			"path": "github.com/nats-io/go-nats",
-			"revision": "4b47946e1082797665a3da33c92860d4553455fe",
-			"revisionTime": "2017-10-02T16:22:15Z"
+			"revision": "247b2a84d8d0ff15cbc6faafc77ef15ea4317011",
+			"revisionTime": "2018-03-31T19:16:09Z"
 		},
 		{
-			"checksumSHA1": "Q2c9uTEIGhSIddv5pntYdFNtUdk=",
+			"checksumSHA1": "C/TsNyFOKX2bTW3U9O3m5mQhJo8=",
 			"path": "github.com/nats-io/go-nats/encoders/builtin",
-			"revision": "4b47946e1082797665a3da33c92860d4553455fe",
-			"revisionTime": "2017-10-02T16:22:15Z"
+			"revision": "247b2a84d8d0ff15cbc6faafc77ef15ea4317011",
+			"revisionTime": "2018-03-31T19:16:09Z"
 		},
 		{
-			"checksumSHA1": "LhbIA/oMWpscEPPK9Wrx5GLcz44=",
+			"checksumSHA1": "mBZQa+wv/u+0qA1ceh6MrWBEgxs=",
 			"path": "github.com/nats-io/go-nats/util",
-			"revision": "4b47946e1082797665a3da33c92860d4553455fe",
-			"revisionTime": "2017-10-02T16:22:15Z"
+			"revision": "247b2a84d8d0ff15cbc6faafc77ef15ea4317011",
+			"revisionTime": "2018-03-31T19:16:09Z"
 		},
 		{
-			"checksumSHA1": "qI+4s7mlYYbB7ppay+Z3Y7+mhik=",
+			"checksumSHA1": "xPMK9Y2UbdQclakznIrDWV1c64o=",
 			"path": "github.com/nats-io/nuid",
-			"revision": "3cf34f9fca4e88afa9da8eabd75e3326c9941b44",
-			"revisionTime": "2017-03-03T15:02:24Z"
+			"revision": "3e58d42c9cfe5cd9429f1a21ad8f35cd859ba829",
+			"revisionTime": "2018-03-17T19:19:20Z"
 		},
 		{
-			"checksumSHA1": "rJab1YdNhQooDiBWNnt7TLWPyBU=",
+			"checksumSHA1": "ljd3FhYRJ91cLZz3wsH9BQQ2JbA=",
 			"path": "github.com/pkg/errors",
-			"revision": "2b3a18b5f0fb6b4f9190549597d3f962c02bc5eb",
-			"revisionTime": "2017-09-10T13:46:14Z"
+			"revision": "816c9085562cd7ee03e7f8188a1cfd942858cded",
+			"revisionTime": "2018-03-11T21:45:15Z"
 		},
 		{
-			"checksumSHA1": "W6IJqJmYBvr+BfyWdbUUA/7lzNM=",
+			"checksumSHA1": "sH2ehBZuEJh2Ro/Ro4BpehZmu9A=",
 			"path": "github.com/rifflock/lfshook",
-			"revision": "3bcf86f879c771238f8a67832a1af71308801a47",
-			"revisionTime": "2017-09-10T02:25:31Z"
+			"revision": "62f5e0662816a462697d29f396fd19376d17f65b",
+			"revisionTime": "2018-03-13T18:34:24Z"
 		},
 		{
 			"checksumSHA1": "lLed03Y8ul450he38HUxaTe/I5s=",
@@ -75,10 +87,10 @@
 			"revisionTime": "2018-03-07T10:15:19Z"
 		},
 		{
-			"checksumSHA1": "BYvROBsiyAXK4sq6yhDe8RgT4LM=",
+			"checksumSHA1": "9ZSqjmvF/JE6Qj/5xOoCAmUgXz8=",
 			"path": "github.com/sirupsen/logrus",
-			"revision": "89742aefa4b206dcf400792f3bd35b542998eb3b",
-			"revisionTime": "2017-08-22T13:27:46Z"
+			"revision": "778f2e774c725116edbc3d039dc0dfc1cc62aae8",
+			"revisionTime": "2018-03-29T22:59:52Z"
 		},
 		{
 			"checksumSHA1": "7G5paRkxcf5bOUrFYM+w6C/GJXw=",
@@ -87,28 +99,28 @@
 			"revisionTime": "2016-11-13T21:41:03Z"
 		},
 		{
-			"checksumSHA1": "nqWNlnMmVpt628zzvyo6Yv2CX5Q=",
+			"checksumSHA1": "BGm8lKZmvJbf/YOJLeL1rw2WVjA=",
 			"path": "golang.org/x/crypto/ssh/terminal",
-			"revision": "9419663f5a44be8b34ca85f08abc5fe1be11f8a3",
-			"revisionTime": "2017-09-30T17:45:11Z"
+			"revision": "d6449816ce06963d9d136eee5a56fca5b0616e7e",
+			"revisionTime": "2018-04-11T15:42:50Z"
 		},
 		{
-			"checksumSHA1": "whCSspa9pYarl527EuhPz91cbUE=",
+			"checksumSHA1": "CkkyCjLPBm0OGzfMuTfaDsd45X4=",
 			"path": "golang.org/x/net/netutil",
-			"revision": "a04bdaca5b32abe1c069418fb7088ae607de5bd0",
-			"revisionTime": "2017-10-03T05:09:24Z"
+			"revision": "61147c48b25b599e5b561d2e9c4f3e1ef489ca41",
+			"revisionTime": "2017-03-19T02:15:06Z"
 		},
 		{
-			"checksumSHA1": "/vc89vae+AsvNTGofKHOmmGRUfU=",
+			"checksumSHA1": "y+hetQOwCwtYeZnDPE5COtsGDkk=",
 			"path": "golang.org/x/sys/unix",
-			"revision": "686000749eaec0b8855b8eef5336cf63899fe51d",
-			"revisionTime": "2017-10-13T11:59:59Z"
+			"revision": "3b87a42e500a6dc65dae1a55d0b641295971163e",
+			"revisionTime": "2018-04-06T09:01:59Z"
 		},
 		{
-			"checksumSHA1": "pBPFzDGt3AVSRffB7ffiUnruFUk=",
+			"checksumSHA1": "Dfz4tGItokMvHZENCsBmPPB8FGQ=",
 			"path": "golang.org/x/sys/windows",
-			"revision": "686000749eaec0b8855b8eef5336cf63899fe51d",
-			"revisionTime": "2017-10-13T11:59:59Z"
+			"revision": "3b87a42e500a6dc65dae1a55d0b641295971163e",
+			"revisionTime": "2018-04-06T09:01:59Z"
 		}
 	],
 	"rootPath": "github.com/roytan883/micro-services"
