@@ -6,7 +6,7 @@ import (
 
 const (
 	//AppName ...
-	AppName = "ws-sender"
+	AppName = "api-base"
 	//ServiceName ...
 	ServiceName = AppName
 )
